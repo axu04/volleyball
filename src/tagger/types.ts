@@ -4,6 +4,8 @@ export interface TaggedRally {
   id: string
   /** Seconds into the video when the rally was committed. */
   videoSeconds: number
+  /** YouTube URL active when this rally was tagged (usually one film per set). */
+  youtubeUrl: string
   set: string
   serving: boolean
   won: boolean

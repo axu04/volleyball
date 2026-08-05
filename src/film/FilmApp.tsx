@@ -1,28 +1,33 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { causeMeta, isOurError } from '../lib/causes'
 import { loadBundledSessions } from '../lib/load'
 import { formatTouchLabel } from '../lib/touches'
 import type { Rally, Session } from '../lib/types'
 import { extractVideoId, formatVideoTimestamp, parseVideoTimestamp } from '../tagger/youtube'
+import { YouTubePlayer, type YouTubePlayerHandle } from '../tagger/YouTubePlayer'
 import { playerColor } from '../components/ui'
+import '../tagger/tagger.css'
 import './film.css'
 
 const KEY = 'sdwfu-film-player'
 /** Sheet timestamps mark when the rally ends; pad a beat after so the whistle lands. */
 const PAD_AFTER = 2
+/** How far before the end mark to start — keeps the error contact on screen, not the prior point. */
+const LOOKBACK = 14
 const DEFAULT_CLIP = 18
-const MAX_CLIP = 45
+const MAX_CLIP = 28
 
 export interface ErrorClip {
   rally: Rally
+  /** Session-level match film from the sheet Videos column (same URL for every set). */
   youtubeUrl: string
   start: number
   end: number
 }
 
 /**
- * Timestamps are end-of-rally. Clip from the previous rally's end (or a default lookback)
- * through this rally's end.
+ * Timestamps are end-of-rally. Prefer a short lookback into this point so long gaps (and the
+ * previous rally) don't dominate the clip; never start before the prior rally's end mark.
  */
 function clipWindow(rally: Rally, session: Session): { start: number; end: number } | null {
   const endRaw = parseVideoTimestamp(rally.videoTimestamp)
@@ -37,11 +42,13 @@ function clipWindow(rally: Rally, session: Session): { start: number; end: numbe
   const idx = peers.findIndex((p) => p.r.id === rally.id)
   const prev = idx > 0 ? peers[idx - 1] : undefined
 
-  let start = prev ? prev.t : Math.max(0, endRaw - DEFAULT_CLIP)
   let end = endRaw + PAD_AFTER
+  let start = Math.max(0, endRaw - LOOKBACK)
+  if (prev) start = Math.max(start, prev.t)
+  else start = Math.max(0, endRaw - DEFAULT_CLIP)
 
-  if (end <= start) start = Math.max(0, end - DEFAULT_CLIP)
-  if (end - start > MAX_CLIP) start = Math.max(0, end - MAX_CLIP)
+  if (end <= start) start = Math.max(0, end - LOOKBACK)
+  if (end - start > MAX_CLIP) start = Math.max(prev?.t ?? 0, end - MAX_CLIP)
 
   return { start, end: Math.max(start + 4, end) }
 }
@@ -52,18 +59,19 @@ function playerErrors(sessions: Session[], name: string): ErrorClip[] {
     for (const r of s.rallies) {
       if (!r.players.includes(name)) continue
       if (!isOurError(r.cause, r.won)) continue
-      const url = s.youtubeUrl
+      const url = r.youtubeUrl || s.youtubeBySet[r.set] || s.youtubeUrl
       if (!url || !extractVideoId(url)) continue
       const win = clipWindow(r, s)
       if (!win) continue
       out.push({ rally: r, youtubeUrl: url, start: win.start, end: win.end })
     }
   }
-  // Chronological within session date, then set order as logged.
   return out.sort((a, b) => {
     if (a.rally.date !== b.rally.date) return a.rally.date.localeCompare(b.rally.date)
     if (a.rally.sessionId !== b.rally.sessionId) return a.rally.sessionId.localeCompare(b.rally.sessionId)
-    if (a.rally.set !== b.rally.set) return String(a.rally.set).localeCompare(String(b.rally.set), undefined, { numeric: true })
+    if (a.rally.set !== b.rally.set) {
+      return String(a.rally.set).localeCompare(String(b.rally.set), undefined, { numeric: true })
+    }
     return a.start - b.start || a.rally.n - b.rally.n
   })
 }
@@ -78,33 +86,48 @@ function rosterWithErrors(sessions: Session[]): string[] {
   return [...names].sort((a, b) => a.localeCompare(b))
 }
 
-function SegmentPlayer({
-  videoId,
+/** One match film for the session — seek between clips instead of remounting a new embed. */
+function SessionFilmPlayer({
+  url,
   start,
   end,
   autoplay,
 }: {
-  videoId: string
+  url: string
   start: number
   end: number
   autoplay: boolean
 }) {
-  // Remount iframe whenever the segment changes so YouTube's start/end params apply cleanly.
-  const src =
-    `https://www.youtube.com/embed/${videoId}` +
-    `?start=${Math.floor(start)}&end=${Math.floor(end)}` +
-    `&rel=0&modestbranding=1&playsinline=1` +
-    (autoplay ? '&autoplay=1' : '')
+  const playerRef = useRef<YouTubePlayerHandle>(null)
+  const endRef = useRef(end)
+  endRef.current = end
+
+  useEffect(() => {
+    const yt = playerRef.current
+    if (!yt) return
+
+    const seek = () => {
+      yt.seekTo(Math.max(0, start))
+      if (autoplay) yt.play()
+      else yt.pause()
+    }
+
+    seek()
+    const boot = window.setTimeout(seek, 400)
+
+    const watch = window.setInterval(() => {
+      if (yt.getCurrentTime() >= endRef.current - 0.15) yt.pause()
+    }, 200)
+
+    return () => {
+      window.clearTimeout(boot)
+      window.clearInterval(watch)
+    }
+  }, [url, start, end, autoplay])
 
   return (
     <div className="film-player">
-      <iframe
-        key={`${videoId}-${start}-${end}-${autoplay}`}
-        title="Error clip"
-        src={src}
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowFullScreen
-      />
+      <YouTubePlayer ref={playerRef} url={url} />
     </div>
   )
 }
@@ -112,6 +135,22 @@ function SegmentPlayer({
 export default function FilmApp() {
   const sessions = useMemo(() => loadBundledSessions().sessions, [])
   const roster = useMemo(() => rosterWithErrors(sessions), [sessions])
+  const sessionFilm = useMemo(() => {
+    const bySet: Array<{ set: string; url: string }> = []
+    for (const s of sessions) {
+      const entries = Object.entries(s.youtubeBySet)
+      if (entries.length) {
+        for (const [set, url] of entries.sort((a, b) =>
+          a[0].localeCompare(b[0], undefined, { numeric: true }),
+        )) {
+          bySet.push({ set: `${s.label} set ${set}`, url })
+        }
+      } else if (s.youtubeUrl) {
+        bySet.push({ set: s.label, url: s.youtubeUrl })
+      }
+    }
+    return bySet
+  }, [sessions])
 
   const [player, setPlayer] = useState<string | null>(() => {
     try {
@@ -129,9 +168,7 @@ export default function FilmApp() {
 
   const causes = useMemo(() => {
     const map = new Map<string, number>()
-    for (const c of clips) {
-      map.set(c.rally.cause, (map.get(c.rally.cause) ?? 0) + 1)
-    }
+    for (const c of clips) map.set(c.rally.cause, (map.get(c.rally.cause) ?? 0) + 1)
     return [...map.entries()].sort((a, b) => b[1] - a[1])
   }, [clips])
 
@@ -143,12 +180,11 @@ export default function FilmApp() {
   const active = filtered.find((c) => c.rally.id === activeId) ?? filtered[0] ?? null
 
   useEffect(() => {
-    if (player) {
-      try {
-        localStorage.setItem(KEY, player)
-      } catch {
-        /* ignore */
-      }
+    if (!player) return
+    try {
+      localStorage.setItem(KEY, player)
+    } catch {
+      /* ignore */
     }
   }, [player])
 
@@ -164,16 +200,10 @@ export default function FilmApp() {
     }
   }, [filtered, active])
 
-  const pick = (name: string) => {
-    setPlayer(name)
-  }
-
   const selectClip = (id: string) => {
     setActiveId(id)
     setAutoplay(true)
   }
-
-  const videoId = active ? extractVideoId(active.youtubeUrl) : null
 
   return (
     <div className="app film-app">
@@ -181,8 +211,20 @@ export default function FilmApp() {
         <div>
           <h1>Error film</h1>
           <div className="sub">
-            Pick a player · timestamps are end-of-rally, so each clip runs from the previous point through this one
+            Each rally stores its YouTube link (usually one film per set) · timestamps are end-of-rally
           </div>
+          {sessionFilm.length > 0 && (
+            <div className="film-source muted">
+              {sessionFilm.map(({ set, url }) => (
+                <span key={`${set}-${url}`} style={{ marginRight: 12 }}>
+                  {set}:{' '}
+                  <a href={url} target="_blank" rel="noreferrer">
+                    {extractVideoId(url) ?? url}
+                  </a>
+                </span>
+              ))}
+            </div>
+          )}
         </div>
         <div className="badge-row">
           <a className="chip" href="/">
@@ -213,7 +255,7 @@ export default function FilmApp() {
                 key={name}
                 type="button"
                 className={`chip ${player === name ? 'on' : ''}`}
-                onClick={() => pick(name)}
+                onClick={() => setPlayer(name)}
               >
                 <i className="dot" style={{ background: playerColor(name), display: 'inline-block', marginRight: 6 }} />
                 {name}
@@ -273,9 +315,7 @@ export default function FilmApp() {
                       <i className="dot" style={{ background: meta.color }} />
                       {meta.label}
                     </span>
-                    <span className="film-time mono">
-                      {formatVideoTimestamp(clip.start)}–{formatVideoTimestamp(clip.end)}
-                    </span>
+                    <span className="film-time mono">ends {r.videoTimestamp}</span>
                   </div>
                   <div className="film-row-meta muted">
                     {r.sessionLabel} · Set {r.set} · #{r.n} · {r.us}–{r.them} ·{' '}
@@ -293,10 +333,10 @@ export default function FilmApp() {
           </aside>
 
           <section className="film-stage">
-            {videoId && active ? (
+            {active && extractVideoId(active.youtubeUrl) ? (
               <>
-                <SegmentPlayer
-                  videoId={videoId}
+                <SessionFilmPlayer
+                  url={active.youtubeUrl}
                   start={active.start}
                   end={active.end}
                   autoplay={autoplay}
@@ -306,7 +346,8 @@ export default function FilmApp() {
                     <i className="dot" style={{ background: causeMeta(active.rally.cause, false).color }} />
                     {causeMeta(active.rally.cause, false).label}
                     <span className="muted">
-                      · {formatVideoTimestamp(active.start)} → {formatVideoTimestamp(active.end)}
+                      · clip {formatVideoTimestamp(active.start)}→{formatVideoTimestamp(active.end)} · point
+                      ends {active.rally.videoTimestamp}
                     </span>
                   </div>
                   <div className="muted">
@@ -352,7 +393,7 @@ export default function FilmApp() {
                 </div>
               </>
             ) : (
-              <div className="empty">Could not load this clip.</div>
+              <div className="empty">Could not load this clip — check the session YouTube URL.</div>
             )}
           </section>
         </div>

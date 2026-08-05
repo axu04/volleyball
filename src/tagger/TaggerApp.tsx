@@ -70,6 +70,7 @@ export default function TaggerApp() {
     const rally: TaggedRally = {
       id: crypto.randomUUID(),
       videoSeconds,
+      youtubeUrl: draft.youtubeUrl.trim(),
       set: draft.set,
       serving: draft.serving,
       won,
@@ -109,6 +110,7 @@ export default function TaggerApp() {
     draft.serving,
     draft.rotation,
     draft.rotations,
+    draft.youtubeUrl,
     resetTouchState,
   ])
 
@@ -246,12 +248,12 @@ export default function TaggerApp() {
             />
           </label>
           <label style={{ gridColumn: 'span 2' }}>
-            <span className="filter-label">YouTube URL</span>
+            <span className="filter-label">YouTube URL (this set&apos;s film)</span>
             <input
               className="search"
               value={draft.youtubeUrl}
               onChange={(e) => patch({ youtubeUrl: e.target.value })}
-              placeholder="https://www.youtube.com/watch?v=…"
+              placeholder="https://www.youtube.com/watch?v=… — change when you switch sets"
               style={{ width: '100%', marginTop: 6 }}
             />
           </label>

@@ -1,6 +1,7 @@
 import Papa from 'papaparse'
 import { parseTouches } from './touches'
 import type { Rally, RotationLineup, ServerInference, Session, SetSummary } from './types'
+import { extractVideoId } from '../tagger/youtube'
 
 /** Causes that can only happen on our own serve, so the sheet's Player must be the server. */
 const SERVE_OUTCOMES = new Set(['serve_err', 'aced_on_them_suckas'])
@@ -292,24 +293,25 @@ export function parseSession(fileName: string, text: string): Session {
   }
 
   let youtubeUrl = ''
-  if (cols.videos >= 0) {
-    for (const row of body) {
-      const cell = norm(row[cols.videos])
-      if (/youtu\.?be|youtube\.com/i.test(cell)) {
-        youtubeUrl = cell
-        break
-      }
-    }
+  let lastRallyUrl = ''
+  const normalizeVideoCell = (cell: string): string => {
+    if (!cell || !/youtu\.?be|youtube\.com/i.test(cell)) return ''
+    const id = extractVideoId(cell)
+    return id ? `https://www.youtube.com/watch?v=${id}` : cell.trim()
   }
-  // Some sheets stick the URL in a spare cell rather than under Videos.
+  const considerVideoCell = (cell: string) => {
+    if (youtubeUrl || !cell) return
+    const url = normalizeVideoCell(cell)
+    if (url) youtubeUrl = url
+  }
+  if (cols.videos >= 0) {
+    for (const row of body) considerVideoCell(norm(row[cols.videos]))
+  }
   if (!youtubeUrl) {
     for (const row of body) {
       for (const cell of row) {
-        const v = norm(cell)
-        if (/youtu\.?be|youtube\.com/i.test(v)) {
-          youtubeUrl = v
-          break
-        }
+        considerVideoCell(norm(cell))
+        if (youtubeUrl) break
       }
       if (youtubeUrl) break
     }
@@ -346,6 +348,16 @@ export function parseSession(fileName: string, text: string): Session {
 
     if (!cause) warnings.push(`Set ${set} rally ${c.n} has no cause tagged.`)
 
+    // Per-rally film link. A fresh URL in Videos updates the carry-forward; blank cells inherit
+    // the last URL so older sheets that only stamped the first row still work.
+    let rallyYoutube = ''
+    if (cols.videos >= 0) {
+      const fromCell = normalizeVideoCell(norm(row[cols.videos]))
+      if (fromCell) lastRallyUrl = fromCell
+      rallyYoutube = lastRallyUrl
+    }
+    if (!rallyYoutube) rallyYoutube = youtubeUrl
+
     rallies.push({
       id: `${id}:${set}:${c.n}`,
       sessionId: id,
@@ -361,6 +373,7 @@ export function parseSession(fileName: string, text: string): Session {
       notes: norm(row[cols.notes]),
       touches: cols.touches >= 0 ? parseTouches(norm(row[cols.touches])) : [],
       videoTimestamp: norm(row[cols.timestamp]),
+      youtubeUrl: rallyYoutube,
       server: null,
       us: c.us,
       them: c.them,
@@ -404,5 +417,29 @@ export function parseSession(fileName: string, text: string): Session {
 
   const players = [...new Set(rallies.flatMap((r) => r.players))].sort((a, b) => a.localeCompare(b))
 
-  return { id, label, date, fileName, youtubeUrl, rallies, sets, lineups, players, warnings, serverInference }
+  const youtubeBySet: Record<string, string> = {}
+  for (const r of rallies) {
+    if (r.youtubeUrl && !youtubeBySet[r.set]) youtubeBySet[r.set] = r.youtubeUrl
+  }
+  if (!youtubeUrl) {
+    youtubeUrl = Object.values(youtubeBySet)[0] ?? ''
+  }
+  if (!youtubeUrl) {
+    warnings.push('No YouTube URL found in the Videos column — error film clips need a link per set.')
+  }
+
+  return {
+    id,
+    label,
+    date,
+    fileName,
+    youtubeUrl,
+    youtubeBySet,
+    rallies,
+    sets,
+    lineups,
+    players,
+    warnings,
+    serverInference,
+  }
 }

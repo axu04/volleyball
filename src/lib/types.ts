@@ -51,6 +51,11 @@ export interface Rally {
   /** End-of-rally mark in the match film (m:ss / h:mm:ss), as written in the sheet. */
   videoTimestamp: string
   /**
+   * YouTube URL for this rally's film. Usually shared across a set; stored per row so sets can
+   * point at different videos. Empty when the sheet never recorded one.
+   */
+  youtubeUrl: string
+  /**
    * Who was at the service line. Derived from the rotation plus the line-up block, and only
    * populated once that mapping has been checked against every serve outcome the sheet tagged
    * by hand. Null on receiving rallies and whenever the check fails.
@@ -105,8 +110,10 @@ export interface Session {
   /** ISO yyyy-mm-dd */
   date: string
   fileName: string
-  /** Match film URL from the sheet's Videos column, when present. */
+  /** Match film URL — prefer per-rally `youtubeUrl`; this is the first URL found in the sheet. */
   youtubeUrl: string
+  /** Distinct film URLs keyed by set label, derived from rally rows. */
+  youtubeBySet: Record<string, string>
   rallies: Rally[]
   sets: SetSummary[]
   lineups: RotationLineup[]

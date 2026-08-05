@@ -82,8 +82,9 @@ export function exportTaggerCsv(args: {
         ]
       : ['', '', '', '', '', '', '', '', '']
 
+    // Per-point Videos column — typically one URL per set, stamped on every rally row.
     let videos = ''
-    if (i === 0 && youtubeUrl) videos = youtubeUrl
+    if (r) videos = r.youtubeUrl || youtubeUrl
     else if (i === 1 && videoTitle) videos = videoTitle
 
     const spare = ['', '', score ? `${score.us}-${score.them}` : '']
