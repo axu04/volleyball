@@ -104,6 +104,8 @@ export interface Session {
   /** ISO yyyy-mm-dd */
   date: string
   fileName: string
+  /** Match film URL from the sheet's Videos column, when present. */
+  youtubeUrl: string
   rallies: Rally[]
   sets: SetSummary[]
   lineups: RotationLineup[]

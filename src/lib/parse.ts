@@ -109,6 +109,7 @@ interface ColumnMap {
   touches: number
   timestamp: number
   score: number
+  videos: number
 }
 
 function findColumns(header: string[]): ColumnMap | null {
@@ -132,6 +133,7 @@ function findColumns(header: string[]): ColumnMap | null {
     touches: find('touches', 'touch sequence'),
     timestamp: find('timestamp', 'time'),
     score: find('official scores', 'official score', 'score'),
+    videos: find('videos', 'video', 'youtube'),
   }
 }
 
@@ -289,6 +291,30 @@ export function parseSession(fileName: string, text: string): Session {
     }
   }
 
+  let youtubeUrl = ''
+  if (cols.videos >= 0) {
+    for (const row of body) {
+      const cell = norm(row[cols.videos])
+      if (/youtu\.?be|youtube\.com/i.test(cell)) {
+        youtubeUrl = cell
+        break
+      }
+    }
+  }
+  // Some sheets stick the URL in a spare cell rather than under Videos.
+  if (!youtubeUrl) {
+    for (const row of body) {
+      for (const cell of row) {
+        const v = norm(cell)
+        if (/youtu\.?be|youtube\.com/i.test(v)) {
+          youtubeUrl = v
+          break
+        }
+      }
+      if (youtubeUrl) break
+    }
+  }
+
   const rallies: Rally[] = []
   const counters = new Map<string, { n: number; us: number; them: number }>()
   let lastSet = '1'
@@ -378,5 +404,5 @@ export function parseSession(fileName: string, text: string): Session {
 
   const players = [...new Set(rallies.flatMap((r) => r.players))].sort((a, b) => a.localeCompare(b))
 
-  return { id, label, date, fileName, rallies, sets, lineups, players, warnings, serverInference }
+  return { id, label, date, fileName, youtubeUrl, rallies, sets, lineups, players, warnings, serverInference }
 }

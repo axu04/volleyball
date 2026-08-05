@@ -1,31 +1,47 @@
-/** Per-touch grades during a rally: receive / set / attack / block, quality 0–3. */
+/** Per-touch grades: serve / receive / set / attack / block (0–3), plus opponent possession. */
 
-export type TouchSkill = 'r' | 's' | 'a' | 'b'
+export type TouchSkill = 'v' | 'r' | 's' | 'a' | 'b'
 
-export interface Touch {
+/** Our contact with a grade. */
+export interface PlayerTouch {
   player: string
   skill: TouchSkill
   quality: 0 | 1 | 2 | 3
 }
 
+/** Ball just came from / went to the opponent — starts a new possession for analysis. */
+export interface OppMarker {
+  opp: true
+}
+
+export type Touch = PlayerTouch | OppMarker
+
 export const TOUCH_SKILLS: { skill: TouchSkill; label: string }[] = [
+  { skill: 'v', label: 'Serve' },
   { skill: 'r', label: 'Receive' },
   { skill: 's', label: 'Set' },
   { skill: 'a', label: 'Attack' },
   { skill: 'b', label: 'Block' },
 ]
 
-export function formatTouch(t: Touch): string {
+export function isOppTouch(t: Touch): t is OppMarker {
+  return 'opp' in t && t.opp === true
+}
+
+export function formatTouch(t: PlayerTouch): string {
   return `${t.skill}${t.quality}`
 }
 
 export function formatTouchLabel(t: Touch): string {
+  if (isOppTouch(t)) return 'o'
   return `${t.player} ${formatTouch(t)}`
 }
 
-/** Compact CSV cell: `Alec:r2|Ish:s3|Michelle:a2` */
+/** Compact CSV: `o|Alec:r1|Avy:r0` or `Sofia:v2|o|Alec:r2|…` */
 export function serializeTouches(touches: Touch[]): string {
-  return touches.map((t) => `${t.player}:${t.skill}${t.quality}`).join('|')
+  return touches
+    .map((t) => (isOppTouch(t) ? 'o' : `${t.player}:${t.skill}${t.quality}`))
+    .join('|')
 }
 
 export function parseTouches(raw: string): Touch[] {
@@ -35,7 +51,11 @@ export function parseTouches(raw: string): Touch[] {
   for (const part of text.split('|')) {
     const cell = part.trim()
     if (!cell) continue
-    const m = cell.match(/^(.+):([rsab])([0-3])$/i)
+    if (/^o$/i.test(cell)) {
+      out.push({ opp: true })
+      continue
+    }
+    const m = cell.match(/^(.+):([vrsab])([0-3])$/i)
     if (!m) continue
     out.push({
       player: m[1].trim(),

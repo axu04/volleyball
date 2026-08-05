@@ -1,0 +1,134 @@
+.film-app .masthead {
+  margin-bottom: 16px;
+}
+
+.film-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .film-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.film-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.film-row {
+  text-align: left;
+  width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  color: inherit;
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease;
+}
+
+.film-row:hover {
+  border-color: var(--border);
+}
+
+.film-row.on {
+  border-color: #fff;
+  background: #111;
+}
+
+.film-row-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 550;
+}
+
+.film-idx {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-faint);
+  font-size: 11px;
+  min-width: 18px;
+}
+
+.film-time {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
+.film-row-meta {
+  font-size: 11.5px;
+  margin-top: 4px;
+}
+
+.film-row-note {
+  font-size: 11.5px;
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.film-stage {
+  position: sticky;
+  top: 16px;
+  background: var(--panel);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+
+.film-player {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--border-soft);
+}
+
+.film-player iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.film-caption {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.film-caption-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.film-notes {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.film-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}

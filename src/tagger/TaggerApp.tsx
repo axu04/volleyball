@@ -198,6 +198,9 @@ export default function TaggerApp() {
             <a className="chip" href="/">
               Dashboard
             </a>
+            <a className="chip" href="/film">
+              Error film
+            </a>
           </div>
         </div>
         <div className="badge-row">
@@ -333,7 +336,7 @@ export default function TaggerApp() {
               +2s
             </button>
             <span className="faint" style={{ fontSize: 12 }}>
-              Y / N for Won / Lost · Enter to commit · touches: type r2 / s3 / a1 / b0 after picking a player
+              Y / N for Won / Lost · Enter to commit · touches: o = their ball, name + Enter, then v2 / r2 / s3…
             </span>
           </div>
         </div>
@@ -379,6 +382,7 @@ export default function TaggerApp() {
             }}
             onTouchSelectPlayer={setPendingTouchPlayer}
             onTouchRecord={onTouchRecord}
+            onTouchOpp={() => setTouches((prev) => [...prev, { opp: true }])}
             onTouchUndo={() => setTouches((prev) => prev.slice(0, -1))}
             onTouchClear={() => {
               setTouches([])
@@ -400,6 +404,8 @@ export default function TaggerApp() {
         {panel === 'log' ? (
           <RallyLog
             rallies={draft.rallies}
+            rotations={draft.rotations}
+            roster={draft.roster}
             selectedId={selectedId}
             onSelect={setSelectedId}
             onDelete={(id) => {
@@ -410,10 +416,10 @@ export default function TaggerApp() {
               playerRef.current?.seekTo(seconds)
               playerRef.current?.pause()
             }}
-            onEditNotes={(id, nextNotes) => {
+            onUpdate={(id, patch) => {
               setDraft((d) => ({
                 ...d,
-                rallies: d.rallies.map((r) => (r.id === id ? { ...r, notes: nextNotes } : r)),
+                rallies: d.rallies.map((r) => (r.id === id ? { ...r, ...patch } : r)),
               }))
             }}
           />

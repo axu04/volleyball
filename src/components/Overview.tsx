@@ -12,6 +12,7 @@ import {
 import { causeMeta } from '../lib/causes'
 import type { Session } from '../lib/types'
 import { coreStats, errorGroups, phaseStats, playerStats, streaks } from '../lib/stats'
+import { ralliesWithTouches, teamTouchSummary } from '../lib/touchStats'
 import type { Rally } from '../lib/types'
 import { Bar, Card, Empty, NetBar, Stat, fmtPct, fmtSigned, playerColor } from './ui'
 
@@ -73,6 +74,12 @@ export function Overview({ rallies, sessions }: { rallies: Rally[]; sessions: Se
   const allSets = sessions.flatMap((s) => s.sets.map((set) => ({ ...set, session: s })))
   const decided = allSets.filter((s) => s.decided)
   const setsWon = decided.filter((s) => s.won).length
+  const touchTagged = ralliesWithTouches(rallies)
+  const touchTeam = touchTagged.length ? teamTouchSummary(rallies) : null
+  const keepPct =
+    touchTeam && touchTeam.emergencies
+      ? (touchTeam.emergenciesKeptAlive / touchTeam.emergencies) * 100
+      : 0
 
   return (
     <>
@@ -133,6 +140,30 @@ export function Overview({ rallies, sessions }: { rallies: Rally[]; sessions: Se
           tone="var(--win)"
           hint="Longest streak of consecutive rallies won inside a single set."
         />
+        {touchTeam && (
+          <>
+            <Stat
+              label="First ball avg"
+              value={touchTeam.firstBall.attempts ? touchTeam.firstBall.avg.toFixed(2) : '—'}
+              detail={`${touchTeam.ralliesTagged} rallies with touches`}
+              tone={
+                touchTeam.firstBall.avg >= 2
+                  ? 'var(--win)'
+                  : touchTeam.firstBall.avg >= 1
+                    ? 'var(--warn)'
+                    : 'var(--loss)'
+              }
+              hint="Average first contact after opponent possession. See the Touches tab."
+            />
+            <Stat
+              label="Saves kept alive"
+              value={touchTeam.emergencies ? fmtPct(keepPct) : '—'}
+              detail={`${touchTeam.emergenciesKeptAlive}/${touchTeam.emergencies} emergency digs`}
+              tone="#22c55e"
+              hint="Receive graded 0–1 that were followed by another touch."
+            />
+          </>
+        )}
       </div>
 
       <div className="grid g2" style={{ marginBottom: 14 }}>

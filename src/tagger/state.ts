@@ -74,7 +74,7 @@ export function clearDraft() {
 
 /**
  * After a rally is committed, advance sticky Serving/Receiving and Rotation the way volleyball
- * works: side-out → rotate and serve; win on serve → keep serving; lose → flip phase.
+ * works: side-out → rotate and serve; win on serve → keep serving; any loss → we receive next.
  */
 export function advanceAfterRally(args: {
   serving: boolean
@@ -90,7 +90,8 @@ export function advanceAfterRally(args: {
   if (won && serving) {
     return { serving: true, rotation }
   }
-  return { serving: !serving, rotation }
+  // Lost while serving or receiving: opponent has (or keeps) the serve.
+  return { serving: false, rotation }
 }
 
 /** Advance to the next label in the session's rotation list, wrapping to the first. */

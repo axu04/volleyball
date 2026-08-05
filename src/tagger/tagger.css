@@ -285,6 +285,13 @@ a.chip {
   font-variant-numeric: tabular-nums;
 }
 
+.touch-pill-opp {
+  color: #fff;
+  border-color: var(--border);
+  background: rgba(255, 255, 255, 0.08);
+  font-weight: 600;
+}
+
 .touch-pending {
   color: var(--text);
   text-transform: none;

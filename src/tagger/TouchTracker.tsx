@@ -1,8 +1,14 @@
-import { useEffect, useState } from 'react'
-import { TOUCH_SKILLS, formatTouchLabel, type Touch, type TouchSkill } from '../lib/touches'
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import {
+  TOUCH_SKILLS,
+  formatTouchLabel,
+  isOppTouch,
+  type Touch,
+  type TouchSkill,
+} from '../lib/touches'
 
 const QUALITIES = [0, 1, 2, 3] as const
-const SKILLS = new Set<string>(['r', 's', 'a', 'b'])
+const SKILLS = new Set<string>(TOUCH_SKILLS.map((s) => s.skill))
 
 export function TouchTracker({
   roster,
@@ -13,6 +19,7 @@ export function TouchTracker({
   onStop,
   onSelectPlayer,
   onRecord,
+  onOpp,
   onUndo,
   onClear,
 }: {
@@ -24,21 +31,73 @@ export function TouchTracker({
   onStop: () => void
   onSelectPlayer: (name: string | null) => void
   onRecord: (skill: TouchSkill, quality: 0 | 1 | 2 | 3) => void
+  onOpp: () => void
   onUndo: () => void
   onClear: () => void
 }) {
   const [skillBuf, setSkillBuf] = useState<TouchSkill | null>(null)
+  const [query, setQuery] = useState('')
+  const [highlight, setHighlight] = useState(0)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const matches = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return roster
+    return roster.filter((n) => n.toLowerCase().includes(q))
+  }, [roster, query])
 
   useEffect(() => {
-    if (!pendingPlayer) {
-      setSkillBuf(null)
-      return
+    setHighlight(0)
+  }, [query, active, pendingPlayer])
+
+  useEffect(() => {
+    if (active && !pendingPlayer) {
+      setQuery('')
+      setHighlight(0)
+      requestAnimationFrame(() => inputRef.current?.focus())
     }
+  }, [active, pendingPlayer, touches.length])
+
+  const markOpp = () => {
+    setSkillBuf(null)
+    setQuery('')
+    if (pendingPlayer) onSelectPlayer(null)
+    onOpp()
+  }
+
+  useEffect(() => {
+    if (!active) return
 
     const onKey = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
       if (e.metaKey || e.ctrlKey || e.altKey) return
+      const target = e.target as HTMLElement
+      const tag = target?.tagName
+      const inField = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
+
+      if (e.key.toLowerCase() === 'o' && !e.repeat) {
+        if (inField && tag === 'INPUT' && inputRef.current === target) {
+          if (query.trim().length > 0) return
+          e.preventDefault()
+          e.stopPropagation()
+          setSkillBuf(null)
+          setQuery('')
+          if (pendingPlayer) onSelectPlayer(null)
+          onOpp()
+          return
+        }
+        if (!inField) {
+          e.preventDefault()
+          e.stopPropagation()
+          setSkillBuf(null)
+          setQuery('')
+          if (pendingPlayer) onSelectPlayer(null)
+          onOpp()
+          return
+        }
+      }
+
+      if (!pendingPlayer) return
+      if (inField) return
 
       if (e.key === 'Escape') {
         e.preventDefault()
@@ -74,7 +133,6 @@ export function TouchTracker({
         return
       }
 
-      // Wrong second key — drop the buffered skill and wait again.
       if (skillBuf) {
         e.preventDefault()
         e.stopPropagation()
@@ -84,7 +142,39 @@ export function TouchTracker({
 
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
-  }, [pendingPlayer, skillBuf, onRecord, onSelectPlayer])
+  }, [active, pendingPlayer, skillBuf, query, onRecord, onSelectPlayer, onOpp])
+
+  const pickPlayer = (name: string) => {
+    setQuery('')
+    onSelectPlayer(name)
+  }
+
+  const onPlayerKeyDown = (e: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      if (!matches.length) return
+      setHighlight((h) => (h + 1) % matches.length)
+      return
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      if (!matches.length) return
+      setHighlight((h) => (h - 1 + matches.length) % matches.length)
+      return
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      e.stopPropagation()
+      const choice = matches[highlight] ?? matches[0]
+      if (choice) pickPlayer(choice)
+      return
+    }
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      setQuery('')
+      inputRef.current?.blur()
+    }
+  }
 
   return (
     <div className="touch-tracker">
@@ -97,6 +187,9 @@ export function TouchTracker({
             </button>
           ) : (
             <>
+              <button type="button" className="chip" onClick={markOpp} title="Opponent ball (o)">
+                o
+              </button>
               <button type="button" className="chip" onClick={onUndo} disabled={!touches.length}>
                 Undo
               </button>
@@ -114,7 +207,10 @@ export function TouchTracker({
       {touches.length > 0 && (
         <div className="touch-seq">
           {touches.map((t, i) => (
-            <span key={`${i}-${formatTouchLabel(t)}`} className="touch-pill">
+            <span
+              key={`${i}-${formatTouchLabel(t)}`}
+              className={`touch-pill ${isOppTouch(t) ? 'touch-pill-opp' : ''}`}
+            >
               {formatTouchLabel(t)}
             </span>
           ))}
@@ -133,23 +229,47 @@ export function TouchTracker({
                       type <span className="touch-type-buf">{skillBuf}_</span> (0–3)
                     </>
                   ) : (
-                    <>type r/s/a/b then 0–3</>
+                    <>type v/r/s/a/b then 0–3 · <code>o</code> = their ball</>
                   )}
                 </span>
               </>
             ) : (
-              'Pick a player'
+              <>
+                Pick a player — type + Enter · <code>o</code> = opponent ball
+              </>
             )}
           </div>
 
           {!pendingPlayer && (
-            <div className="filter-group">
+            <div className="touch-player-pick">
+              <input
+                ref={inputRef}
+                className="search"
+                style={{ width: '100%', marginBottom: 8 }}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={onPlayerKeyDown}
+                placeholder="Type a name… (or o for opponent)"
+                autoComplete="off"
+                spellCheck={false}
+              />
               {roster.length === 0 && <span className="faint">Add players in session setup.</span>}
-              {roster.map((name) => (
-                <button key={name} type="button" className="chip" onClick={() => onSelectPlayer(name)}>
-                  {name}
-                </button>
-              ))}
+              <div className="filter-group">
+                {matches.map((name, i) => (
+                  <button
+                    key={name}
+                    type="button"
+                    className={`chip ${i === highlight ? 'on' : ''}`}
+                    onClick={() => pickPlayer(name)}
+                    onMouseEnter={() => setHighlight(i)}
+                  >
+                    {name}
+                  </button>
+                ))}
+                {roster.length > 0 && matches.length === 0 && (
+                  <span className="faint">No match for “{query.trim()}”</span>
+                )}
+              </div>
             </div>
           )}
 
@@ -189,8 +309,8 @@ export function TouchTracker({
 
       {!active && !touches.length && (
         <div className="faint" style={{ fontSize: 12, marginTop: 4 }}>
-          Optional — Start, pick a player, type e.g. <code>r2</code> / <code>s3</code> / <code>a1</code> /{' '}
-          <code>b0</code>.
+          Optional — Start, <code>o</code> when they send it, name + Enter, then <code>v2</code> /{' '}
+          <code>r2</code> / <code>s3</code> / <code>a1</code> / <code>b0</code>.
         </div>
       )}
     </div>

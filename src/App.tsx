@@ -6,6 +6,7 @@ import { Overview } from './components/Overview'
 import { Players } from './components/Players'
 import { Rotations } from './components/Rotations'
 import { Serving } from './components/Serving'
+import { Touches } from './components/Touches'
 import { Trends } from './components/Trends'
 import { Empty, fmtPct } from './components/ui'
 import { loadBundledSessions, loadDroppedFiles, mergeSessions } from './lib/load'
@@ -15,6 +16,7 @@ import type { Session } from './lib/types'
 
 const TABS = [
   'Overview',
+  'Touches',
   'Players',
   'Serving',
   'Rotations',
@@ -107,6 +109,9 @@ export default function App() {
           </div>
         </div>
         <div className="badge-row">
+          <a className="chip" href="/film">
+            Error film
+          </a>
           <a className="chip" href="/tagger">
             Rally tagger
           </a>
@@ -229,6 +234,7 @@ export default function App() {
           )}
 
           {tab === 'Overview' && <Overview rallies={rallies} sessions={activeSessions} />}
+          {tab === 'Touches' && <Touches rallies={rallies} />}
           {tab === 'Players' && <Players rallies={rallies} />}
           {tab === 'Serving' && <Serving rallies={rallies} sessions={activeSessions} />}
           {tab === 'Rotations' && <Rotations rallies={rallies} sessions={activeSessions} />}
