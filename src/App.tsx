@@ -112,9 +112,6 @@ export default function App() {
           <a className="chip" href="/film">
             Error film
           </a>
-          <a className="chip" href="/tagger">
-            Rally tagger
-          </a>
           <div className="record-chip">
             <span className="big">
               {setsWon}–{setsTotal - setsWon}

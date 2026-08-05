@@ -261,9 +261,6 @@ export default function FilmApp() {
           <a className="chip" href="/">
             Dashboard
           </a>
-          <a className="chip" href="/tagger">
-            Rally tagger
-          </a>
           {player && (
             <div className="record-chip">
               <span className="big" style={{ color: 'var(--loss)' }}>
