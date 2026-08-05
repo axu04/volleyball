@@ -4,7 +4,7 @@ import { scoreFlow } from '../lib/stats'
 import type { Rally, Session } from '../lib/types'
 import { Card, Empty } from './ui'
 
-const axis = { stroke: '#3d4d68', fontSize: 11, tickLine: false }
+const axis = { stroke: '#333333', fontSize: 11, tickLine: false }
 
 function FlowTip({ active, payload }: any) {
   if (!active || !payload?.length) return null
@@ -65,17 +65,17 @@ export function Flow({ rallies, sessions }: { rallies: Rally[]; sessions: Sessio
                     <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
                       <stop offset={0} stopColor="#22c55e" stopOpacity={0.5} />
                       <stop offset={zeroOffset} stopColor="#22c55e" stopOpacity={0.05} />
-                      <stop offset={zeroOffset} stopColor="#f43f5e" stopOpacity={0.05} />
-                      <stop offset={1} stopColor="#f43f5e" stopOpacity={0.45} />
+                      <stop offset={zeroOffset} stopColor="#ef4444" stopOpacity={0.05} />
+                      <stop offset={1} stopColor="#ef4444" stopOpacity={0.45} />
                     </linearGradient>
                     <linearGradient id={`${gradientId}-stroke`} x1="0" y1="0" x2="0" y2="1">
                       <stop offset={zeroOffset} stopColor="#4ade80" />
-                      <stop offset={zeroOffset} stopColor="#fb7185" />
+                      <stop offset={zeroOffset} stopColor="#f87171" />
                     </linearGradient>
                   </defs>
                   <XAxis dataKey="n" {...axis} axisLine={false} />
                   <YAxis {...axis} axisLine={false} allowDecimals={false} />
-                  <ReferenceLine y={0} stroke="#3d4d68" />
+                  <ReferenceLine y={0} stroke="#333333" />
                   <Tooltip content={<FlowTip />} />
                   <Area
                     type="stepAfter"
@@ -95,8 +95,8 @@ export function Flow({ rallies, sessions }: { rallies: Rally[]; sessions: Sessio
                   <XAxis dataKey="n" {...axis} axisLine={false} />
                   <YAxis {...axis} axisLine={false} allowDecimals={false} />
                   <Tooltip content={<FlowTip />} />
-                  <Line type="stepAfter" dataKey="us" stroke="#38bdf8" strokeWidth={2} dot={false} name="Us" />
-                  <Line type="stepAfter" dataKey="them" stroke="#f43f5e" strokeWidth={2} dot={false} name="Them" />
+                  <Line type="stepAfter" dataKey="us" stroke="#ededed" strokeWidth={2} dot={false} name="Us" />
+                  <Line type="stepAfter" dataKey="them" stroke="#ef4444" strokeWidth={2} dot={false} name="Them" />
                 </LineChart>
               </ResponsiveContainer>
             </div>

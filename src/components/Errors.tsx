@@ -15,7 +15,7 @@ import { causeBreakdown, coreStats, errorGroups } from '../lib/stats'
 import type { Rally } from '../lib/types'
 import { Bar, Card, Empty, Stat, fmtPct } from './ui'
 
-const axis = { stroke: '#3d4d68', fontSize: 11, tickLine: false }
+const axis = { stroke: '#333333', fontSize: 11, tickLine: false }
 
 export function Errors({ rallies }: { rallies: Rally[] }) {
   const errs = rallies.filter((r) => isOurError(r.cause, r.won))
@@ -68,7 +68,7 @@ export function Errors({ rallies }: { rallies: Rally[] }) {
           label="Errors while serving"
           value={serving}
           detail={`vs ${receiving} while receiving`}
-          tone="#a855f7"
+          tone="#f97316"
           hint="Errors in the serving phase kill your own runs."
         />
         <Stat

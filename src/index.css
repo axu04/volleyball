@@ -1,26 +1,26 @@
 :root {
-  --bg: #080b12;
-  --bg-elev: #0e1420;
-  --panel: #121a28;
-  --panel-2: #172133;
-  --border: #22304a;
-  --border-soft: #1a2436;
+  --bg: #000000;
+  --bg-elev: #0a0a0a;
+  --panel: #0a0a0a;
+  --panel-2: #111111;
+  --border: #333333;
+  --border-soft: #1a1a1a;
 
-  --text: #e8eef7;
-  --text-dim: #93a4bd;
-  --text-faint: #64748b;
+  --text: #ededed;
+  --text-dim: #888888;
+  --text-faint: #666666;
 
-  --accent: #38bdf8;
-  --accent-2: #a78bfa;
+  --accent: #fafafa;
+  --accent-2: #a1a1a1;
   --win: #22c55e;
-  --loss: #f43f5e;
+  --loss: #ef4444;
   --warn: #f59e0b;
 
-  --radius: 14px;
-  --radius-sm: 9px;
+  --radius: 8px;
+  --radius-sm: 6px;
 
   color-scheme: dark;
-  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
   font-synthesis: none;
   -webkit-font-smoothing: antialiased;
 }
@@ -37,10 +37,7 @@ body,
 
 body {
   margin: 0;
-  background:
-    radial-gradient(1100px 620px at 12% -12%, rgba(56, 189, 248, 0.12), transparent 60%),
-    radial-gradient(900px 520px at 92% 0%, rgba(167, 139, 250, 0.1), transparent 58%),
-    var(--bg);
+  background: var(--bg);
   color: var(--text);
   font-size: 14px;
   line-height: 1.5;
@@ -51,8 +48,8 @@ h2,
 h3,
 h4 {
   margin: 0;
-  font-weight: 650;
-  letter-spacing: -0.015em;
+  font-weight: 600;
+  letter-spacing: -0.03em;
 }
 
 button {
@@ -66,7 +63,7 @@ button {
 .app {
   max-width: 1440px;
   margin: 0 auto;
-  padding: 26px 26px 80px;
+  padding: 24px 24px 80px;
 }
 
 .masthead {
@@ -75,14 +72,15 @@ button {
   justify-content: space-between;
   gap: 20px;
   flex-wrap: wrap;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-soft);
 }
 
 .masthead h1 {
-  font-size: 26px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
 }
 
 .masthead .sub {
@@ -102,22 +100,23 @@ button {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  background: linear-gradient(150deg, var(--panel-2), var(--panel));
-  border: 1px solid var(--border);
+  background: var(--panel);
+  border: 1px solid var(--border-soft);
   border-radius: var(--radius);
-  padding: 10px 16px;
+  padding: 8px 14px;
 }
 
 .record-chip .big {
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 20px;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
 }
 
 .record-chip .lbl {
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.08em;
   color: var(--text-faint);
 }
 
@@ -151,13 +150,16 @@ button {
 }
 
 .chip {
-  background: var(--panel);
+  background: transparent;
   border: 1px solid var(--border-soft);
-  border-radius: 999px;
-  padding: 5px 12px;
-  font-size: 12.5px;
+  border-radius: var(--radius-sm);
+  padding: 5px 11px;
+  font-size: 13px;
   color: var(--text-dim);
-  transition: all 0.12s ease;
+  transition:
+    border-color 0.12s ease,
+    color 0.12s ease,
+    background 0.12s ease;
   white-space: nowrap;
 }
 
@@ -167,9 +169,10 @@ button {
 }
 
 .chip.on {
-  background: rgba(56, 189, 248, 0.16);
-  border-color: rgba(56, 189, 248, 0.5);
-  color: #bae6fd;
+  background: #fff;
+  border-color: #fff;
+  color: #000;
+  font-weight: 550;
 }
 
 .chip.ghost {
@@ -184,7 +187,7 @@ button {
 
 .tabs {
   display: flex;
-  gap: 4px;
+  gap: 2px;
   border-bottom: 1px solid var(--border-soft);
   margin-bottom: 20px;
   overflow-x: auto;
@@ -193,12 +196,13 @@ button {
 .tab {
   background: none;
   border: none;
-  border-bottom: 2px solid transparent;
+  border-bottom: 1px solid transparent;
   padding: 10px 14px;
   color: var(--text-dim);
-  font-size: 13.5px;
-  font-weight: 550;
+  font-size: 13px;
+  font-weight: 500;
   white-space: nowrap;
+  margin-bottom: -1px;
 }
 
 .tab:hover {
@@ -206,8 +210,8 @@ button {
 }
 
 .tab.on {
-  color: var(--text);
-  border-bottom-color: var(--accent);
+  color: #fff;
+  border-bottom-color: #fff;
 }
 
 /* ---------- cards ---------- */
@@ -273,8 +277,8 @@ button {
 .stat {
   background: var(--panel);
   border: 1px solid var(--border-soft);
-  border-radius: var(--radius-sm);
-  padding: 13px 15px;
+  border-radius: var(--radius);
+  padding: 14px 16px;
   position: relative;
   overflow: hidden;
 }
@@ -283,9 +287,9 @@ button {
   content: '';
   position: absolute;
   inset: 0 auto 0 0;
-  width: 3px;
-  background: var(--tone, var(--accent));
-  opacity: 0.85;
+  width: 2px;
+  background: var(--tone, #fff);
+  opacity: 0.9;
 }
 
 .stat .k {
@@ -379,7 +383,7 @@ th.sorted {
 td {
   text-align: right;
   padding: 8px 9px;
-  border-bottom: 1px solid rgba(26, 36, 54, 0.65);
+  border-bottom: 1px solid var(--border-soft);
   font-size: 13px;
   white-space: nowrap;
 }
@@ -494,9 +498,9 @@ tbody tr:last-child td {
 }
 
 .dropzone.over {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: rgba(56, 189, 248, 0.07);
+  border-color: #fff;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .setline {
@@ -504,7 +508,7 @@ tbody tr:last-child td {
   align-items: center;
   gap: 10px;
   padding: 8px 0;
-  border-bottom: 1px solid rgba(26, 36, 54, 0.6);
+  border-bottom: 1px solid var(--border-soft);
   font-size: 13px;
 }
 
@@ -578,7 +582,7 @@ tbody tr:last-child td {
 }
 
 .search:focus {
-  border-color: rgba(56, 189, 248, 0.5);
+  border-color: var(--border);
 }
 
 .legend {
@@ -601,13 +605,53 @@ tbody tr:last-child td {
 }
 
 .tip {
-  background: rgba(10, 15, 24, 0.96);
+  background: #0a0a0a;
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: var(--radius-sm);
   padding: 9px 12px;
   font-size: 12.5px;
-  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
   max-width: 280px;
+}
+
+.chip.primary {
+  background: #fff;
+  border-color: #fff;
+  color: #000;
+  font-weight: 550;
+}
+
+.chip.primary:hover:not(:disabled) {
+  background: #eaeaea;
+  border-color: #eaeaea;
+}
+
+.chip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+input,
+textarea,
+select {
+  font: inherit;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  outline: none;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--border);
+}
+
+code {
+  font-size: 0.92em;
+  color: var(--text-dim);
 }
 
 .tip .t-title {

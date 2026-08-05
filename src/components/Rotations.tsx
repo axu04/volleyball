@@ -18,7 +18,7 @@ import type { Rally, Session } from '../lib/types'
 import { Card, Empty, SortableTable, fmtPct, fmtSigned, playerColor } from './ui'
 import type { Column } from './ui'
 
-const axis = { stroke: '#3d4d68', fontSize: 11, tickLine: false }
+const axis = { stroke: '#333333', fontSize: 11, tickLine: false }
 
 export function Rotations({ rallies, sessions }: { rallies: Rally[]; sessions: Session[] }) {
   const rots = rotationStats(rallies)
@@ -100,7 +100,7 @@ export function Rotations({ rallies, sessions }: { rallies: Rally[]; sessions: S
               <BarChart data={rots} margin={{ left: -20, right: 12, top: 10, bottom: 0 }}>
                 <XAxis dataKey="rotation" tickFormatter={(v) => `R${v}`} {...axis} axisLine={false} />
                 <YAxis {...axis} axisLine={false} allowDecimals={false} />
-                <ReferenceLine y={0} stroke="#3d4d68" />
+                <ReferenceLine y={0} stroke="#333333" />
                 <Tooltip
                   cursor={{ fill: 'rgba(255,255,255,.04)' }}
                   content={({ active, payload }: any) =>
@@ -138,8 +138,8 @@ export function Rotations({ rallies, sessions }: { rallies: Rally[]; sessions: S
                 <PolarGrid stroke="rgba(255,255,255,.08)" />
                 <PolarAngleAxis dataKey="rotation" tick={{ fill: '#93a4bd', fontSize: 12 }} />
                 <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
-                <Radar name="Side-out %" dataKey="Side-out %" stroke="#38bdf8" fill="#38bdf8" fillOpacity={0.22} />
-                <Radar name="Serve pt %" dataKey="Serve pt %" stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.18} />
+                <Radar name="Side-out %" dataKey="Side-out %" stroke="#ededed" fill="#ededed" fillOpacity={0.18} />
+                <Radar name="Serve pt %" dataKey="Serve pt %" stroke="#a1a1a1" fill="#a1a1a1" fillOpacity={0.14} />
                 <Tooltip
                   content={({ active, payload, label }: any) =>
                     active && payload?.length ? (
@@ -159,10 +159,10 @@ export function Rotations({ rallies, sessions }: { rallies: Rally[]; sessions: S
           </div>
           <div className="legend">
             <span>
-              <i className="dot" style={{ background: '#38bdf8' }} /> Side-out % (receiving)
+              <i className="dot" style={{ background: '#ededed' }} /> Side-out % (receiving)
             </span>
             <span>
-              <i className="dot" style={{ background: '#a78bfa' }} /> Serve point % (serving)
+              <i className="dot" style={{ background: '#a1a1a1' }} /> Serve point % (serving)
             </span>
           </div>
         </Card>

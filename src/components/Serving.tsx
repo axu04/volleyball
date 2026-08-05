@@ -4,7 +4,7 @@ import type { Rally, Session } from '../lib/types'
 import { Card, Empty, SortableTable, Stat, fmtPct, playerColor } from './ui'
 import type { Column } from './ui'
 
-const axis = { stroke: '#3d4d68', fontSize: 11, tickLine: false }
+const axis = { stroke: '#333333', fontSize: 11, tickLine: false }
 
 export function Serving({ rallies, sessions }: { rallies: Rally[]; sessions: Session[] }) {
   const c = coreStats(rallies)
@@ -88,7 +88,7 @@ export function Serving({ rallies, sessions }: { rallies: Rally[]; sessions: Ses
           label="Serves"
           value={c.serveRallies}
           detail={`${fmtPct(c.servePointPct, 1)} became points`}
-          tone="#a78bfa"
+          tone="#a1a1a1"
         />
         <Stat
           label="Aces"
@@ -106,7 +106,7 @@ export function Serving({ rallies, sessions }: { rallies: Rally[]; sessions: Ses
           label="Aced against us"
           value={c.acedOn}
           detail={`${fmtPct(c.acedOnRate, 1)} of serves received`}
-          tone="#6366f1"
+          tone="#737373"
         />
       </div>
 
@@ -156,7 +156,7 @@ export function Serving({ rallies, sessions }: { rallies: Rally[]; sessions: Ses
                 <BarChart data={chart} margin={{ left: -20, right: 12, top: 10, bottom: 0 }} stackOffset="sign">
                   <XAxis dataKey="name" {...axis} axisLine={false} />
                   <YAxis {...axis} axisLine={false} allowDecimals={false} />
-                  <ReferenceLine y={0} stroke="#3d4d68" />
+                  <ReferenceLine y={0} stroke="#333333" />
                   <Tooltip
                     cursor={{ fill: 'rgba(255,255,255,.04)' }}
                     content={({ active, payload }: any) => {
@@ -180,12 +180,12 @@ export function Serving({ rallies, sessions }: { rallies: Rally[]; sessions: Ses
                   />
                   <RBar dataKey="aces" name="Aces" stackId="s" barSize={44} radius={[5, 5, 0, 0]}>
                     {chart.map((s) => (
-                      <Cell key={s.name} fill="#14b8a6" />
+                      <Cell key={s.name} fill="#22c55e" />
                     ))}
                   </RBar>
                   <RBar dataKey="missed" name="Service errors" stackId="s" barSize={44} radius={[0, 0, 5, 5]}>
                     {chart.map((s) => (
-                      <Cell key={s.name} fill="#a855f7" />
+                      <Cell key={s.name} fill="#ef4444" />
                     ))}
                   </RBar>
                 </BarChart>
@@ -193,10 +193,10 @@ export function Serving({ rallies, sessions }: { rallies: Rally[]; sessions: Ses
             </div>
             <div className="legend">
               <span>
-                <i className="dot" style={{ background: '#14b8a6' }} /> Aces
+                <i className="dot" style={{ background: '#22c55e' }} /> Aces
               </span>
               <span>
-                <i className="dot" style={{ background: '#a855f7' }} /> Service errors
+                <i className="dot" style={{ background: '#ef4444' }} /> Service errors
               </span>
             </div>
           </Card>

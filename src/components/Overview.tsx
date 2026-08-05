@@ -15,7 +15,7 @@ import { coreStats, errorGroups, phaseStats, playerStats, streaks } from '../lib
 import type { Rally } from '../lib/types'
 import { Bar, Card, Empty, NetBar, Stat, fmtPct, fmtSigned, playerColor } from './ui'
 
-const axis = { stroke: '#3d4d68', fontSize: 11, tickLine: false }
+const axis = { stroke: '#333333', fontSize: 11, tickLine: false }
 
 function TinyTip({ active, payload, suffix = '' }: any) {
   if (!active || !payload?.length) return null
@@ -41,10 +41,10 @@ export function Overview({ rallies, sessions }: { rallies: Rally[]; sessions: Se
   // Split opponent errors by whether the sheet named one of ours on the rally. Lumping all 38
   // together as "gifts" hides the ones we actually forced.
   const wins = [
-    { key: 'opp_err_forced', label: 'Forced opponent error', color: '#0ea5e9', count: c.forced },
+    { key: 'opp_err_forced', label: 'Forced opponent error', color: '#a1a1a1', count: c.forced },
     { key: 'aced_on_them_suckas', label: 'Ace', color: causeMeta('aced_on_them_suckas').color, count: c.aces },
     { key: 'our_point', label: 'Kill / earned point', color: causeMeta('our_point').color, count: c.kills },
-    { key: 'opp_err_unprompted', label: 'Unprompted opponent error', color: '#64748b', count: c.unprompted },
+    { key: 'opp_err_unprompted', label: 'Unprompted opponent error', color: '#525252', count: c.unprompted },
   ]
     .filter((w) => w.count > 0)
     .map((w) => ({ ...w, share: c.won > 0 ? (w.count / c.won) * 100 : 0 }))
@@ -88,21 +88,21 @@ export function Overview({ rallies, sessions }: { rallies: Rally[]; sessions: Se
           label="Side-out rate"
           value={fmtPct(c.sideoutPct, 1)}
           detail={`${c.sideouts} of ${c.recvRallies} receiving`}
-          tone="#38bdf8"
+          tone="#ededed"
           hint="How often we win the rally when receiving serve. The single best predictor of winning sets — 60%+ is strong at rec level."
         />
         <Stat
           label="Point-scoring rate on serve"
           value={fmtPct(c.servePointPct, 1)}
           detail={`${c.servePointsWon} of ${c.serveRallies} serving`}
-          tone="#a78bfa"
+          tone="#a1a1a1"
           hint="How often we win the rally when we serve. This is what extends runs."
         />
         <Stat
           label="Forced opponent errors"
           value={c.forced}
           detail={`plus ${c.unprompted} unprompted`}
-          tone="#0ea5e9"
+          tone="#737373"
           hint="opp_err rallies where the sheet named one of our players — we made them miss. The rest had nobody tagged."
         />
         <Stat
@@ -123,7 +123,7 @@ export function Overview({ rallies, sessions }: { rallies: Rally[]; sessions: Se
           label="Aced against us"
           value={c.acedOn}
           detail={`${fmtPct(c.acedOnRate, 1)} of serves received`}
-          tone="#6366f1"
+          tone="#737373"
           hint="Free points handed to the other team's server."
         />
         <Stat

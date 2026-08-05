@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import Dashboard from './App'
 import TaggerApp from './tagger/TaggerApp'
 
-function pathIsTagger(pathname: string) {
-  return pathname === '/tagger' || pathname.startsWith('/tagger/')
+function routeFor(pathname: string) {
+  const path = pathname.replace(/\/+$/, '') || '/'
+  if (path === '/tagger' || path.startsWith('/tagger/')) return 'tagger'
+  return 'dashboard'
 }
 
 export default function Root() {
@@ -15,8 +17,6 @@ export default function Root() {
     return () => window.removeEventListener('popstate', onPop)
   }, [])
 
-  // Intercept same-origin <a href="/tagger"> / <a href="/"> without a full reload so drafts
-  // and dashboard state stay warm when hopping between tools.
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       const a = (e.target as HTMLElement).closest('a')
@@ -31,5 +31,6 @@ export default function Root() {
     return () => document.removeEventListener('click', onClick)
   }, [])
 
-  return pathIsTagger(path) ? <TaggerApp /> : <Dashboard />
+  if (routeFor(path) === 'tagger') return <TaggerApp />
+  return <Dashboard />
 }

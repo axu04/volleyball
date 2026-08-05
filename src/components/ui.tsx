@@ -1,16 +1,16 @@
 import { useMemo, useState, type ReactNode } from 'react'
 
 const PALETTE = [
-  '#38bdf8',
-  '#f472b6',
-  '#4ade80',
+  '#ededed',
+  '#22c55e',
+  '#a1a1a1',
+  '#f59e0b',
+  '#ef4444',
+  '#d4d4d4',
+  '#86efac',
   '#fbbf24',
-  '#a78bfa',
-  '#fb7185',
-  '#2dd4bf',
-  '#f97316',
-  '#818cf8',
-  '#facc15',
+  '#737373',
+  '#fca5a5',
 ]
 
 export function playerColor(name: string): string {

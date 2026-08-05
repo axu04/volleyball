@@ -26,7 +26,7 @@ const META: CauseMeta[] = [
     side: 'win',
     kind: 'ace',
     group: GROUPS.serve,
-    color: '#14b8a6',
+    color: '#ededed',
   },
   {
     key: 'opp_err',
@@ -35,7 +35,7 @@ const META: CauseMeta[] = [
     side: 'win',
     kind: 'gift',
     group: GROUPS.other,
-    color: '#64748b',
+    color: '#a1a1a1',
   },
   {
     key: 'opp_point',
@@ -44,7 +44,7 @@ const META: CauseMeta[] = [
     side: 'loss',
     kind: 'conceded',
     group: GROUPS.defense,
-    color: '#94a3b8',
+    color: '#737373',
   },
   {
     key: 'attack_out',
@@ -53,7 +53,7 @@ const META: CauseMeta[] = [
     side: 'loss',
     kind: 'error',
     group: GROUPS.attack,
-    color: '#f97316',
+    color: '#f59e0b',
   },
   {
     key: 'attack_net',
@@ -62,7 +62,7 @@ const META: CauseMeta[] = [
     side: 'loss',
     kind: 'error',
     group: GROUPS.attack,
-    color: '#fb923c',
+    color: '#fbbf24',
   },
   {
     key: 'handling_bump',
@@ -71,7 +71,7 @@ const META: CauseMeta[] = [
     side: 'loss',
     kind: 'error',
     group: GROUPS.handling,
-    color: '#e11d48',
+    color: '#ef4444',
   },
   {
     key: 'handling_set',
@@ -80,7 +80,7 @@ const META: CauseMeta[] = [
     side: 'loss',
     kind: 'error',
     group: GROUPS.handling,
-    color: '#f43f5e',
+    color: '#f87171',
   },
   {
     key: 'handling_misc',
@@ -89,7 +89,7 @@ const META: CauseMeta[] = [
     side: 'loss',
     kind: 'error',
     group: GROUPS.handling,
-    color: '#fb7185',
+    color: '#fca5a5',
   },
   {
     key: 'serve_err',
@@ -98,7 +98,7 @@ const META: CauseMeta[] = [
     side: 'loss',
     kind: 'error',
     group: GROUPS.serve,
-    color: '#a855f7',
+    color: '#f97316',
   },
   {
     key: 'aced_on_us',
@@ -107,7 +107,7 @@ const META: CauseMeta[] = [
     side: 'loss',
     kind: 'error',
     group: GROUPS.receive,
-    color: '#6366f1',
+    color: '#a1a1a1',
   },
   {
     key: 'fault',
@@ -116,7 +116,7 @@ const META: CauseMeta[] = [
     side: 'loss',
     kind: 'conceded',
     group: GROUPS.other,
-    color: '#78716c',
+    color: '#525252',
   },
   {
     key: 'coverage',
@@ -125,7 +125,7 @@ const META: CauseMeta[] = [
     side: 'loss',
     kind: 'error',
     group: GROUPS.defense,
-    color: '#0ea5e9',
+    color: '#d4d4d4',
   },
 ]
 
@@ -143,7 +143,7 @@ export function causeMeta(key: string, won?: boolean): CauseMeta {
     side,
     kind: side === 'win' ? 'gift' : 'error',
     group: GROUPS.other,
-    color: side === 'win' ? '#38bdf8' : '#b45309',
+    color: side === 'win' ? '#ededed' : '#b45309',
   }
 }
 

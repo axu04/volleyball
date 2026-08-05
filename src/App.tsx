@@ -100,9 +100,10 @@ export default function App() {
     >
       <header className="masthead">
         <div>
-          <h1>Volleyball Mania</h1>
+          <h1>Dashboard</h1>
           <div className="sub">
-            {sessions.length} session{sessions.length === 1 ? '' : 's'} · {dateRange || 'no data'}
+            Sunday&apos;s Didn&apos;t Work For Us · {sessions.length} session
+            {sessions.length === 1 ? '' : 's'} · {dateRange || 'no data'}
           </div>
         </div>
         <div className="badge-row">

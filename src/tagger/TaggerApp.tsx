@@ -155,14 +155,15 @@ export default function TaggerApp() {
     <div className="tagger-app">
       <header className="tagger-top">
         <div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
-            <h1>Rally Tagger</h1>
-            <a className="chip ghost" href="/">
-              ← Dashboard
-            </a>
-          </div>
+          <h1>Rally tagger</h1>
           <div className="sub">
-            Tag rallies while watching. Export a CSV and drop it into <code>data/</code>.
+            Sunday&apos;s Didn&apos;t Work For Us · tag while watching, export CSV into{' '}
+            <code>data/</code>
+          </div>
+          <div className="tagger-nav">
+            <a className="chip" href="/">
+              Dashboard
+            </a>
           </div>
         </div>
         <div className="badge-row">
@@ -178,13 +179,18 @@ export default function TaggerApp() {
               <span className="lbl">set {set}</span>
             </div>
           ))}
-          <button type="button" className="chip" onClick={() => downloadCsv(filename, csv)} disabled={!draft.rallies.length}>
+          <button
+            type="button"
+            className="chip primary"
+            onClick={() => downloadCsv(filename, csv)}
+            disabled={!draft.rallies.length}
+          >
             Download CSV
           </button>
           <button type="button" className="chip" onClick={copyCsv} disabled={!draft.rallies.length}>
             {copied ? 'Copied' : 'Copy CSV'}
           </button>
-          <button type="button" className="chip ghost" onClick={resetSession}>
+          <button type="button" className="chip" onClick={resetSession}>
             New session
           </button>
         </div>

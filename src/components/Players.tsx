@@ -18,14 +18,14 @@ import type { Rally } from '../lib/types'
 import { Card, Empty, NetBar, SortableTable, fmtPct, fmtSigned, playerColor } from './ui'
 import type { Column } from './ui'
 
-const axis = { stroke: '#3d4d68', fontSize: 11, tickLine: false }
+const axis = { stroke: '#333333', fontSize: 11, tickLine: false }
 
 const ERROR_GROUPS = [
-  { key: 'attackErrs' as const, label: GROUPS.attack, color: '#f97316' },
-  { key: 'handlingErrs' as const, label: GROUPS.handling, color: '#e11d48' },
-  { key: 'serveErrs' as const, label: GROUPS.serve, color: '#a855f7' },
-  { key: 'acedOn' as const, label: GROUPS.receive, color: '#6366f1' },
-  { key: 'coverageErrs' as const, label: GROUPS.defense, color: '#0ea5e9' },
+  { key: 'attackErrs' as const, label: GROUPS.attack, color: '#f59e0b' },
+  { key: 'handlingErrs' as const, label: GROUPS.handling, color: '#ef4444' },
+  { key: 'serveErrs' as const, label: GROUPS.serve, color: '#f97316' },
+  { key: 'acedOn' as const, label: GROUPS.receive, color: '#737373' },
+  { key: 'coverageErrs' as const, label: GROUPS.defense, color: '#a1a1a1' },
 ]
 
 export function Players({ rallies }: { rallies: Rally[] }) {
@@ -191,7 +191,7 @@ export function Players({ rallies }: { rallies: Rally[] }) {
                 />
                 <ZAxis type="number" dataKey="involved" range={[80, 460]} />
                 <Tooltip
-                  cursor={{ strokeDasharray: '3 3', stroke: '#3d4d68' }}
+                  cursor={{ strokeDasharray: '3 3', stroke: '#333333' }}
                   content={({ active, payload }: any) =>
                     active && payload?.length ? (
                       <div className="tip">

@@ -16,13 +16,13 @@ import type { Session } from '../lib/types'
 import { Card, Empty, SortableTable, fmtPct, fmtSigned, playerColor } from './ui'
 import type { Column } from './ui'
 
-const axis = { stroke: '#3d4d68', fontSize: 11, tickLine: false }
+const axis = { stroke: '#333333', fontSize: 11, tickLine: false }
 
 const RATE_SERIES = [
-  { key: 'winPct', label: 'Point win %', color: '#38bdf8' },
-  { key: 'sideoutPct', label: 'Side-out %', color: '#4ade80' },
-  { key: 'servePointPct', label: 'Serve point %', color: '#a78bfa' },
-  { key: 'errorRate', label: 'Error rate %', color: '#f43f5e' },
+  { key: 'winPct', label: 'Point win %', color: '#ededed' },
+  { key: 'sideoutPct', label: 'Side-out %', color: '#22c55e' },
+  { key: 'servePointPct', label: 'Serve point %', color: '#a1a1a1' },
+  { key: 'errorRate', label: 'Error rate %', color: '#ef4444' },
 ]
 
 export function Trends({ sessions }: { sessions: Session[] }) {
@@ -174,16 +174,16 @@ export function Trends({ sessions }: { sessions: Session[] }) {
                   }
                 />
                 <Legend wrapperStyle={{ fontSize: 11.5, paddingTop: 6 }} iconType="circle" iconSize={8} />
-                <RBar dataKey="aces" name="Aces" stackId="s" fill="#14b8a6" barSize={36} radius={[4, 4, 0, 0]} />
+                <RBar dataKey="aces" name="Aces" stackId="s" fill="#22c55e" barSize={36} radius={[4, 4, 0, 0]} />
                 <RBar
                   dataKey="serveErrs"
                   name="Service errors"
                   stackId="s"
-                  fill="#a855f7"
+                  fill="#ef4444"
                   barSize={36}
                   radius={[0, 0, 4, 4]}
                 />
-                <RBar dataKey="acedOn" name="Aced on us" fill="#6366f1" barSize={14} radius={[4, 4, 0, 0]} />
+                <RBar dataKey="acedOn" name="Aced on us" fill="#a1a1a1" barSize={14} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
