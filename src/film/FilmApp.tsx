@@ -146,19 +146,63 @@ export default function FilmApp() {
   })
   const [activeId, setActiveId] = useState<string | null>(null)
   const [autoplay, setAutoplay] = useState(false)
+  const [sessionFilter, setSessionFilter] = useState<string | 'all'>('all')
+  const [setFilter, setSetFilter] = useState<string | 'all'>('all')
   const [causeFilter, setCauseFilter] = useState<string | 'all'>('all')
 
   const clips = useMemo(() => (player ? playerErrors(sessions, player) : []), [sessions, player])
 
-  const causes = useMemo(() => {
-    const map = new Map<string, number>()
-    for (const c of clips) map.set(c.rally.cause, (map.get(c.rally.cause) ?? 0) + 1)
-    return [...map.entries()].sort((a, b) => b[1] - a[1])
+  const sessionOptions = useMemo(() => {
+    const map = new Map<string, { label: string; count: number; date: string }>()
+    for (const c of clips) {
+      const cur = map.get(c.rally.sessionId) ?? {
+        label: c.rally.sessionLabel,
+        count: 0,
+        date: c.rally.date,
+      }
+      cur.count += 1
+      map.set(c.rally.sessionId, cur)
+    }
+    return [...map.entries()].sort((a, b) => a[1].date.localeCompare(b[1].date))
   }, [clips])
 
+  const bySession = useMemo(
+    () => (sessionFilter === 'all' ? clips : clips.filter((c) => c.rally.sessionId === sessionFilter)),
+    [clips, sessionFilter],
+  )
+
+  const setOptions = useMemo(() => {
+    const map = new Map<string, { label: string; count: number; sort: string }>()
+    for (const c of bySession) {
+      const key = `${c.rally.sessionId}::${c.rally.set}`
+      const cur = map.get(key) ?? {
+        label: `${c.rally.sessionLabel} · Set ${c.rally.set}`,
+        count: 0,
+        sort: `${c.rally.date}-${c.rally.set}`,
+      }
+      cur.count += 1
+      map.set(key, cur)
+    }
+    return [...map.entries()].sort((a, b) => a[1].sort.localeCompare(b[1].sort, undefined, { numeric: true }))
+  }, [bySession])
+
+  const bySet = useMemo(
+    () =>
+      setFilter === 'all'
+        ? bySession
+        : bySession.filter((c) => `${c.rally.sessionId}::${c.rally.set}` === setFilter),
+    [bySession, setFilter],
+  )
+
+  const causes = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const c of bySet) map.set(c.rally.cause, (map.get(c.rally.cause) ?? 0) + 1)
+    return [...map.entries()].sort((a, b) => b[1] - a[1])
+  }, [bySet])
+
   const filtered = useMemo(
-    () => (causeFilter === 'all' ? clips : clips.filter((c) => c.rally.cause === causeFilter)),
-    [clips, causeFilter],
+    () => (causeFilter === 'all' ? bySet : bySet.filter((c) => c.rally.cause === causeFilter)),
+    [bySet, causeFilter],
   )
 
   const active = filtered.find((c) => c.rally.id === activeId) ?? filtered[0] ?? null
@@ -174,9 +218,22 @@ export default function FilmApp() {
 
   useEffect(() => {
     setActiveId(null)
+    setSessionFilter('all')
+    setSetFilter('all')
     setCauseFilter('all')
     setAutoplay(false)
   }, [player])
+
+  useEffect(() => {
+    setSetFilter('all')
+    setCauseFilter('all')
+    setActiveId(null)
+  }, [sessionFilter])
+
+  useEffect(() => {
+    setCauseFilter('all')
+    setActiveId(null)
+  }, [setFilter])
 
   useEffect(() => {
     if (active && !filtered.some((c) => c.rally.id === active.rally.id)) {
@@ -188,6 +245,8 @@ export default function FilmApp() {
     setActiveId(id)
     setAutoplay(true)
   }
+
+  const filtersActive = sessionFilter !== 'all' || setFilter !== 'all' || causeFilter !== 'all'
 
   return (
     <div className="app film-app">
@@ -210,7 +269,7 @@ export default function FilmApp() {
               <span className="big" style={{ color: 'var(--loss)' }}>
                 {filtered.length}
               </span>
-              <span className="lbl">{causeFilter === 'all' ? 'errors' : 'matching'}</span>
+              <span className="lbl">{filtersActive ? 'matching' : 'errors'}</span>
             </div>
           )}
         </div>
@@ -235,6 +294,50 @@ export default function FilmApp() {
             ))
           )}
         </div>
+        {player && sessionOptions.length > 1 && (
+          <div className="filter-group">
+            <span className="filter-label">Date</span>
+            <button
+              type="button"
+              className={`chip ${sessionFilter === 'all' ? 'on' : 'ghost'}`}
+              onClick={() => setSessionFilter('all')}
+            >
+              All
+            </button>
+            {sessionOptions.map(([id, opt]) => (
+              <button
+                key={id}
+                type="button"
+                className={`chip ${sessionFilter === id ? 'on' : ''}`}
+                onClick={() => setSessionFilter(id)}
+              >
+                {opt.label} · {opt.count}
+              </button>
+            ))}
+          </div>
+        )}
+        {player && setOptions.length > 1 && (
+          <div className="filter-group">
+            <span className="filter-label">Set</span>
+            <button
+              type="button"
+              className={`chip ${setFilter === 'all' ? 'on' : 'ghost'}`}
+              onClick={() => setSetFilter('all')}
+            >
+              All
+            </button>
+            {setOptions.map(([key, opt]) => (
+              <button
+                key={key}
+                type="button"
+                className={`chip ${setFilter === key ? 'on' : ''}`}
+                onClick={() => setSetFilter(key)}
+              >
+                {sessionOptions.length > 1 ? opt.label : `Set ${key.split('::')[1]}`} · {opt.count}
+              </button>
+            ))}
+          </div>
+        )}
         {player && causes.length > 1 && (
           <div className="filter-group">
             <span className="filter-label">Cause</span>
@@ -265,7 +368,7 @@ export default function FilmApp() {
         <div className="empty">
           {clips.length === 0
             ? `${player} has no errors with a video timestamp + YouTube link in the loaded sheets.`
-            : 'No errors match this cause filter.'}
+            : 'No errors match these filters.'}
         </div>
       ) : (
         <div className="film-layout">
