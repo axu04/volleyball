@@ -143,7 +143,7 @@ export function Serving({ rallies, sessions }: { rallies: Rally[]; sessions: Ses
             />
             <div className="faint" style={{ fontSize: 11.5, marginTop: 10 }}>
               The sheet only names a player on serves that ended immediately, so the server here is worked out from the
-              Rotation column and the line-up block: position 1 is the last name in each rotation's back row. That
+              Rotation column and the line-up block: position 1 is right back (third back-row name). That
               mapping reproduces every hand-tagged ace and service error in the file, which is why the rest of the
               serves can be attributed too. If a future sheet disagrees on even one, this tab switches itself off rather
               than guess.

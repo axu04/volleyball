@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { causeMeta } from '../lib/causes'
+import { formatTouchLabel } from '../lib/touches'
 import type { Rally } from '../lib/types'
 import { Card, Empty, playerColor } from './ui'
 
@@ -16,7 +17,8 @@ export function Log({ rallies }: { rallies: Rally[] }) {
         r.notes.toLowerCase().includes(q) ||
         r.cause.includes(q) ||
         causeMeta(r.cause, r.won).label.toLowerCase().includes(q) ||
-        r.players.some((p) => p.toLowerCase().includes(q))
+        r.players.some((p) => p.toLowerCase().includes(q)) ||
+        r.touches.some((t) => formatTouchLabel(t).toLowerCase().includes(q))
       )
     })
   }, [rallies, query, notesOnly])
@@ -60,6 +62,9 @@ export function Log({ rallies }: { rallies: Rally[] }) {
                 Player
               </th>
               <th className="static" style={{ textAlign: 'left' }}>
+                Touches
+              </th>
+              <th className="static" style={{ textAlign: 'left' }}>
                 Note
               </th>
               <th className="static">Video</th>
@@ -68,6 +73,7 @@ export function Log({ rallies }: { rallies: Rally[] }) {
           <tbody>
             {filtered.map((r) => {
               const meta = causeMeta(r.cause, r.won)
+              const touchText = r.touches.map(formatTouchLabel).join(' · ')
               return (
                 <tr key={r.id}>
                   <td style={{ textAlign: 'left' }} className="muted">
@@ -100,6 +106,9 @@ export function Log({ rallies }: { rallies: Rally[] }) {
                     ) : (
                       <span className="faint">—</span>
                     )}
+                  </td>
+                  <td className="log-note muted" title={touchText}>
+                    {touchText || <span className="faint">—</span>}
                   </td>
                   <td className="log-note">{r.notes || <span className="faint">—</span>}</td>
                   <td className="faint mono">{r.videoTimestamp || '—'}</td>

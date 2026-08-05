@@ -1,4 +1,6 @@
 import type { LineupDraft, OfficialScore, TaggedRally } from './types'
+import { normalizeLineup } from './lineupRotation'
+import { serializeTouches } from '../lib/touches'
 import { formatVideoTimestamp } from './youtube'
 
 function csvCell(value: string): string {
@@ -7,9 +9,8 @@ function csvCell(value: string): string {
 }
 
 /**
- * Serialize a tagging session into the exact CSV shape the dashboard parser expects.
- * Column layout mirrors the hand-written sheets: log on the left, line-ups and official
- * scores in the spare columns to the right.
+ * Tagging CSV: rally log (incl. Touches) on the left; videos, official scores, and
+ * 6+1 line-ups (front row, then back+sub) in the spare columns.
  */
 export function exportTaggerCsv(args: {
   rallies: TaggedRally[]
@@ -29,10 +30,12 @@ export function exportTaggerCsv(args: {
     'Player',
     'Rotation',
     'Notes',
+    'Touches',
     'Videos',
     '',
     '',
     'official scores',
+    '',
     '',
     '',
     '',
@@ -50,10 +53,11 @@ export function exportTaggerCsv(args: {
 
   type LineupPair = { marker: string; names: string[] }
   const pairs: LineupPair[] = []
-  for (const l of lineups) {
-    if (!l.front.some(Boolean) && !l.back.some(Boolean)) continue
-    pairs.push({ marker: l.rotation, names: l.front.filter(Boolean) })
-    pairs.push({ marker: '', names: l.back.filter(Boolean) })
+  for (const raw of lineups) {
+    const l = normalizeLineup(raw)
+    if (!l.front.some(Boolean) && !l.back.some(Boolean) && !l.sub) continue
+    pairs.push({ marker: l.rotation, names: [...l.front] })
+    pairs.push({ marker: '', names: [...l.back, l.sub] })
   }
 
   const body: string[][] = []
@@ -74,8 +78,9 @@ export function exportTaggerCsv(args: {
           r.players.join(', '),
           r.rotation,
           r.notes,
+          serializeTouches(r.touches ?? []),
         ]
-      : ['', '', '', '', '', '', '', '']
+      : ['', '', '', '', '', '', '', '', '']
 
     let videos = ''
     if (i === 0 && youtubeUrl) videos = youtubeUrl
@@ -85,17 +90,22 @@ export function exportTaggerCsv(args: {
 
     let lineupCells: string[]
     if (i === 0) {
-      lineupCells = ['rotation:', '', '', '']
+      lineupCells = ['rotation:', '', '', '', '']
     } else {
       const pair = pairs[i - 1]
       if (!pair) {
-        lineupCells = ['', '', '', '']
+        lineupCells = ['', '', '', '', '']
       } else if (pair.marker) {
-        lineupCells = [pair.marker, pair.names[0] ?? '', pair.names[1] ?? '', pair.names[2] ?? '']
-      } else if (pair.names.length <= 3) {
-        lineupCells = ['', pair.names[0] ?? '', pair.names[1] ?? '', pair.names[2] ?? '']
+        lineupCells = [pair.marker, pair.names[0] ?? '', pair.names[1] ?? '', pair.names[2] ?? '', '']
       } else {
-        lineupCells = [pair.names[0] ?? '', pair.names[1] ?? '', pair.names[2] ?? '', pair.names[3] ?? '']
+        // Back L/M/R + sub
+        lineupCells = [
+          '',
+          pair.names[0] ?? '',
+          pair.names[1] ?? '',
+          pair.names[2] ?? '',
+          pair.names[3] ?? '',
+        ]
       }
     }
 
@@ -103,7 +113,7 @@ export function exportTaggerCsv(args: {
   }
 
   if (body.length === 0) {
-    body.push(['', '', '', '', '', '', '', '', youtubeUrl, '', '', '', 'rotation:', '', '', ''])
+    body.push(['', '', '', '', '', '', '', '', '', youtubeUrl, '', '', '', 'rotation:', '', '', '', ''])
   }
 
   return [header, ...body].map((row) => row.map(csvCell).join(',')).join('\n') + '\n'

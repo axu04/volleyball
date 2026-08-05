@@ -1,4 +1,5 @@
 import Papa from 'papaparse'
+import { parseTouches } from './touches'
 import type { Rally, RotationLineup, ServerInference, Session, SetSummary } from './types'
 
 /** Causes that can only happen on our own serve, so the sheet's Player must be the server. */
@@ -105,6 +106,7 @@ interface ColumnMap {
   player: number
   rotation: number
   notes: number
+  touches: number
   timestamp: number
   score: number
 }
@@ -127,6 +129,7 @@ function findColumns(header: string[]): ColumnMap | null {
     player: find('player', 'who'),
     rotation: find('rotation', 'rot'),
     notes: find('notes', 'note'),
+    touches: find('touches', 'touch sequence'),
     timestamp: find('timestamp', 'time'),
     score: find('official scores', 'official score', 'score'),
   }
@@ -136,10 +139,8 @@ function findColumns(header: string[]): ColumnMap | null {
 const ROTATION_ID = /^\d{1,2}[a-z]?$/i
 
 /**
- * A line-up block lives in the spare columns to the right of the log under a "rotation" heading.
- * Each rotation is two rows: front row, then back row. A sheet can carry more than one block when
- * the line-up changed part way through the night, and the back row is not always three names —
- * a squad of seven plays three in front and four behind.
+ * A line-up block lives in the spare columns under a "rotation" heading.
+ * Each rotation is two rows: front (L/M/R), then back (L/M/R) + optional sub.
  */
 function parseLineups(rows: string[][], startCol: number, endCol: number, blockLabel: string): RotationLineup[] {
   const out: RotationLineup[] = []
@@ -156,18 +157,23 @@ function parseLineups(rows: string[][], startCol: number, endCol: number, blockL
     if (/rotation/i.test(marker)) continue
 
     if (ROTATION_ID.test(marker)) {
-      current = { rotation: marker.toLowerCase(), front: namesIn(row, startCol + 1), back: [], blockLabel }
+      current = {
+        rotation: marker.toLowerCase(),
+        front: namesIn(row, startCol + 1).slice(0, 3),
+        back: [],
+        sub: '',
+        blockLabel,
+      }
       out.push(current)
       continue
     }
 
-    // The back row can start in the marker column itself when it holds more names than the front
-    // row does: a squad of seven plays three in front and four behind, and the extra name is
-    // written one column to the left. Reading from the marker column handles both layouts, since
-    // an empty marker cell simply drops out.
     if (current && current.back.length === 0) {
       const names = namesIn(row, startCol)
-      if (names.length) current.back = names
+      if (names.length) {
+        current.back = names.slice(0, 3)
+        current.sub = names[3] ?? ''
+      }
     }
   }
 
@@ -175,16 +181,13 @@ function parseLineups(rows: string[][], startCol: number, endCol: number, blockL
 }
 
 /**
- * The server is whoever is in position 1 (right back), which is the last name in the back row of
- * the line-up block. That is an assumption about how the block is written down, so rather than
- * trusting it we check it against every serve outcome the sheet already attributes by hand
- * (aces and service errors). One disagreement and we throw the whole thing away — a wrong server
- * silently spread across 70+ rallies would be far worse than not having the column at all.
+ * The server is right back (position 1) — the third back-row name.
+ * Checked against hand-tagged aces / service errors before we trust it.
  */
 function inferServers(lineups: RotationLineup[], rallies: Rally[]): ServerInference {
   const byRotation: Record<string, string> = {}
   for (const l of lineups) {
-    const server = l.back[l.back.length - 1]
+    const server = l.back[2] ?? l.back[l.back.length - 1]
     if (server) byRotation[l.rotation] = server
   }
 
@@ -271,7 +274,7 @@ export function parseSession(fileName: string, text: string): Session {
 
   // Start looking one column past the log itself. The score column can sit among the spare
   // columns too, but it only ever holds "25-22" style text, which never parses as a name.
-  const logEnd = Math.max(cols.notes, cols.player, cols.rotation, cols.cause, 0) + 1
+  const logEnd = Math.max(cols.notes, cols.touches, cols.player, cols.rotation, cols.cause, 0) + 1
   const blocks = findLineupBlocks(body, logEnd)
   const lineups = blocks.flatMap(({ col, label }, i) => {
     const endCol = i + 1 < blocks.length ? blocks[i + 1].col - 1 : Math.max(...body.map((r) => r.length))
@@ -330,6 +333,7 @@ export function parseSession(fileName: string, text: string): Session {
       players: splitPlayers(norm(row[cols.player]), canon),
       rotation,
       notes: norm(row[cols.notes]),
+      touches: cols.touches >= 0 ? parseTouches(norm(row[cols.touches])) : [],
       videoTimestamp: norm(row[cols.timestamp]),
       server: null,
       us: c.us,

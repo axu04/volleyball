@@ -199,6 +199,11 @@ export function Rotations({ rallies, sessions }: { rallies: Rally[]; sessions: S
                       </div>
                     ))}
                   </div>
+                  {l.sub ? (
+                    <div className="faint" style={{ fontSize: 11.5, marginTop: 6 }}>
+                      Sub · {l.sub}
+                    </div>
+                  ) : null}
                   <div className="faint" style={{ fontSize: 10.5, marginTop: 2 }}>
                     {l.session.label}
                     {l.blockLabel && !/^rotation:?$/i.test(l.blockLabel) ? ` · ${l.blockLabel}` : ''}

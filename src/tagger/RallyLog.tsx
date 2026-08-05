@@ -1,4 +1,5 @@
 import { causeMeta } from '../lib/causes'
+import { formatTouchLabel } from '../lib/touches'
 import type { TaggedRally } from './types'
 import { formatVideoTimestamp } from './youtube'
 
@@ -43,6 +44,9 @@ export function RallyLog({
               Player
             </th>
             <th className="static" style={{ textAlign: 'left' }}>
+              Touches
+            </th>
+            <th className="static" style={{ textAlign: 'left' }}>
               Notes
             </th>
             <th className="static" />
@@ -52,6 +56,7 @@ export function RallyLog({
           {rows.map((r, revIdx) => {
             const n = rallies.length - revIdx
             const meta = causeMeta(r.cause, r.won)
+            const touchText = (r.touches ?? []).map(formatTouchLabel).join(' · ')
             return (
               <tr
                 key={r.id}
@@ -87,6 +92,9 @@ export function RallyLog({
                 </td>
                 <td style={{ textAlign: 'left' }} className="muted">
                   {r.players.join(', ') || '—'}
+                </td>
+                <td style={{ textAlign: 'left' }} className="muted" title={touchText}>
+                  {touchText || '—'}
                 </td>
                 <td style={{ textAlign: 'left' }}>
                   <input

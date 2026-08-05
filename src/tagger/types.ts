@@ -1,3 +1,5 @@
+import type { Touch } from '../lib/touches'
+
 export interface TaggedRally {
   id: string
   /** Seconds into the video when the rally was committed. */
@@ -9,12 +11,18 @@ export interface TaggedRally {
   players: string[]
   rotation: string
   notes: string
+  /** Optional per-contact grades during the rally. */
+  touches: Touch[]
 }
 
 export interface LineupDraft {
   rotation: string
+  /** Left, middle, right — court positions 4, 3, 2. */
   front: string[]
+  /** Left, middle, right — court positions 5, 6, 1 (server is right back). */
   back: string[]
+  /** Off-court player; enters at front-left on the next clockwise rotate. */
+  sub: string
 }
 
 export interface LineupBlock {
@@ -58,7 +66,8 @@ export function emptyLineups(rotations: string[]): LineupDraft[] {
   return rotations.map((rotation) => ({
     rotation,
     front: ['', '', ''],
-    back: ['', '', '', ''],
+    back: ['', '', ''],
+    sub: '',
   }))
 }
 

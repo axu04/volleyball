@@ -1,3 +1,4 @@
+import { autofillLineupsFrom, normalizeLineup } from './lineupRotation'
 import type { LineupDraft, OfficialScore } from './types'
 
 export function LineupEditor({
@@ -7,6 +8,7 @@ export function LineupEditor({
   setsSeen,
   onChangeLineups,
   onChangeScores,
+  onRemoveRotation,
 }: {
   lineups: LineupDraft[]
   roster: string[]
@@ -14,17 +16,23 @@ export function LineupEditor({
   setsSeen: string[]
   onChangeLineups: (lineups: LineupDraft[]) => void
   onChangeScores: (scores: OfficialScore[]) => void
+  onRemoveRotation?: (label: string) => void
 }) {
-  const setName = (rotIdx: number, row: 'front' | 'back', slot: number, value: string) => {
-    onChangeLineups(
-      lineups.map((l, i) => {
-        if (i !== rotIdx) return l
-        const next = [...l[row]]
-        while (next.length <= slot) next.push('')
-        next[slot] = value
-        return { ...l, [row]: next }
-      }),
-    )
+  const setSlot = (
+    rotIdx: number,
+    field: 'front' | 'back' | 'sub',
+    slot: number | null,
+    value: string,
+  ) => {
+    const next = lineups.map((l, i) => {
+      if (i !== rotIdx) return normalizeLineup(l)
+      const cur = normalizeLineup(l)
+      if (field === 'sub') return { ...cur, sub: value }
+      const row = [...cur[field]]
+      row[slot!] = value
+      return { ...cur, [field]: row }
+    })
+    onChangeLineups(autofillLineupsFrom(rotIdx, next))
   }
 
   const setScore = (set: string, side: 'us' | 'them', value: string) => {
@@ -44,43 +52,61 @@ export function LineupEditor({
       <div>
         <h3 style={{ fontSize: 14, marginBottom: 6 }}>Line-ups by rotation</h3>
         <div className="faint" style={{ fontSize: 11.5, marginBottom: 12 }}>
-          Set who is on court for each rotation. Front row is three; back row is up to four (for a seven-person
-          squad). Add or remove rotations from the tagging panel.
+          Six on court + one sub. Fill any rotation completely and the other six autofill — sub enters
+          front-left, squad rotates clockwise.
         </div>
         <div className="grid" style={{ gap: 10 }}>
-          {lineups.map((l, rotIdx) => (
-            <div key={l.rotation} className="lineup">
-              <div className="rot-no">
-                <span>Rotation {l.rotation}</span>
+          {lineups.map((raw, rotIdx) => {
+            const l = normalizeLineup(raw)
+            return (
+              <div key={l.rotation} className="lineup">
+                <div className="rot-no">
+                  <span>Rotation {l.rotation}</span>
+                  {onRemoveRotation && lineups.length > 1 && (
+                    <button
+                      type="button"
+                      className="chip"
+                      style={{ padding: '2px 8px', fontSize: 12 }}
+                      onClick={() => onRemoveRotation(l.rotation)}
+                      title={`Remove rotation ${l.rotation}`}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+                <div className="filter-label" style={{ marginBottom: 4 }}>
+                  Front (L · M · R)
+                </div>
+                <div className="court-row" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                  {[0, 1, 2].map((slot) => (
+                    <NameSelect
+                      key={slot}
+                      roster={roster}
+                      value={l.front[slot] ?? ''}
+                      onChange={(v) => setSlot(rotIdx, 'front', slot, v)}
+                    />
+                  ))}
+                </div>
+                <div className="filter-label" style={{ margin: '6px 0 4px' }}>
+                  Back (L · M · R / serve)
+                </div>
+                <div className="court-row" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                  {[0, 1, 2].map((slot) => (
+                    <NameSelect
+                      key={slot}
+                      roster={roster}
+                      value={l.back[slot] ?? ''}
+                      onChange={(v) => setSlot(rotIdx, 'back', slot, v)}
+                    />
+                  ))}
+                </div>
+                <div className="filter-label" style={{ margin: '6px 0 4px' }}>
+                  Sub
+                </div>
+                <NameSelect roster={roster} value={l.sub} onChange={(v) => setSlot(rotIdx, 'sub', null, v)} />
               </div>
-              <div className="filter-label" style={{ marginBottom: 4 }}>
-                Front
-              </div>
-              <div className="court-row" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-                {[0, 1, 2].map((slot) => (
-                  <NameSelect
-                    key={slot}
-                    roster={roster}
-                    value={l.front[slot] ?? ''}
-                    onChange={(v) => setName(rotIdx, 'front', slot, v)}
-                  />
-                ))}
-              </div>
-              <div className="filter-label" style={{ margin: '6px 0 4px' }}>
-                Back
-              </div>
-              <div className="court-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-                {[0, 1, 2, 3].map((slot) => (
-                  <NameSelect
-                    key={slot}
-                    roster={roster}
-                    value={l.back[slot] ?? ''}
-                    onChange={(v) => setName(rotIdx, 'back', slot, v)}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
 

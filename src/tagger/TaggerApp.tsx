@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { loadBundledSessions } from '../lib/load'
+import type { Touch, TouchSkill } from '../lib/touches'
 import { downloadCsv, exportTaggerCsv } from './exportCsv'
 import { LineupEditor } from './LineupEditor'
 import { RallyForm } from './RallyForm'
@@ -29,6 +30,9 @@ export default function TaggerApp() {
   const [cause, setCause] = useState('')
   const [players, setPlayers] = useState<string[]>([])
   const [notes, setNotes] = useState('')
+  const [touches, setTouches] = useState<Touch[]>([])
+  const [touchActive, setTouchActive] = useState(false)
+  const [pendingTouchPlayer, setPendingTouchPlayer] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [rosterInput, setRosterInput] = useState('')
   const [copied, setCopied] = useState(false)
@@ -53,6 +57,12 @@ export default function TaggerApp() {
     return bySet
   }, [draft.rallies])
 
+  const resetTouchState = useCallback(() => {
+    setTouches([])
+    setTouchActive(false)
+    setPendingTouchPlayer(null)
+  }, [])
+
   const commit = useCallback(() => {
     if (!canCommit || won === null) return
     const videoSeconds = playerRef.current?.getCurrentTime() ?? 0
@@ -67,6 +77,7 @@ export default function TaggerApp() {
       players: [...players],
       rotation: draft.rotation,
       notes: notes.trim(),
+      touches: [...touches],
     }
 
     const next = advanceAfterRally({
@@ -85,8 +96,30 @@ export default function TaggerApp() {
     setCause('')
     setPlayers([])
     setNotes('')
+    resetTouchState()
     setSelectedId(rally.id)
-  }, [canCommit, won, cause, players, notes, draft.set, draft.serving, draft.rotation, draft.rotations])
+  }, [
+    canCommit,
+    won,
+    cause,
+    players,
+    notes,
+    touches,
+    draft.set,
+    draft.serving,
+    draft.rotation,
+    draft.rotations,
+    resetTouchState,
+  ])
+
+  const onTouchRecord = useCallback(
+    (skill: TouchSkill, quality: 0 | 1 | 2 | 3) => {
+      if (!pendingTouchPlayer) return
+      setTouches((prev) => [...prev, { player: pendingTouchPlayer, skill, quality }])
+      setPendingTouchPlayer(null)
+    },
+    [pendingTouchPlayer],
+  )
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -146,6 +179,7 @@ export default function TaggerApp() {
     setCause('')
     setPlayers([])
     setNotes('')
+    resetTouchState()
     setSelectedId(null)
   }
 
@@ -299,7 +333,7 @@ export default function TaggerApp() {
               +2s
             </button>
             <span className="faint" style={{ fontSize: 12 }}>
-              Y / N for Won / Lost · Enter to commit · click a timestamp to jump
+              Y / N for Won / Lost · Enter to commit · touches: type r2 / s3 / a1 / b0 after picking a player
             </span>
           </div>
         </div>
@@ -316,6 +350,9 @@ export default function TaggerApp() {
             notes={notes}
             roster={draft.roster}
             canCommit={canCommit}
+            touches={touches}
+            touchActive={touchActive}
+            pendingTouchPlayer={pendingTouchPlayer}
             onChange={(p) => {
               if (p.set !== undefined) patch({ set: p.set })
               if (p.rotation !== undefined) patch({ rotation: p.rotation })
@@ -334,6 +371,18 @@ export default function TaggerApp() {
             onRemoveRotation={(label) => {
               const next = removeRotation(label, draft.rotations, draft.lineups, draft.rotation)
               patch({ rotations: next.rotations, lineups: next.lineups, rotation: next.rotation })
+            }}
+            onTouchStart={() => setTouchActive(true)}
+            onTouchStop={() => {
+              setTouchActive(false)
+              setPendingTouchPlayer(null)
+            }}
+            onTouchSelectPlayer={setPendingTouchPlayer}
+            onTouchRecord={onTouchRecord}
+            onTouchUndo={() => setTouches((prev) => prev.slice(0, -1))}
+            onTouchClear={() => {
+              setTouches([])
+              setPendingTouchPlayer(null)
             }}
           />
         </div>
@@ -376,6 +425,10 @@ export default function TaggerApp() {
             setsSeen={[...trackedScore.keys()]}
             onChangeLineups={(lineups) => patch({ lineups })}
             onChangeScores={(officialScores) => patch({ officialScores })}
+            onRemoveRotation={(label) => {
+              const next = removeRotation(label, draft.rotations, draft.lineups, draft.rotation)
+              patch({ rotations: next.rotations, lineups: next.lineups, rotation: next.rotation })
+            }}
           />
         )}
       </section>

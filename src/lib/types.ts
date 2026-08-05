@@ -1,3 +1,5 @@
+import type { Touch } from './touches'
+
 export type CauseSide = 'win' | 'loss'
 
 /**
@@ -41,6 +43,11 @@ export interface Rally {
    */
   rotation: string | null
   notes: string
+  /**
+   * Optional per-contact grades (receive/set/attack/block · 0–3), in rally order.
+   * Empty for older sheets that never recorded touches.
+   */
+  touches: Touch[]
   videoTimestamp: string
   /**
    * Who was at the service line. Derived from the rotation plus the line-up block, and only
@@ -57,6 +64,8 @@ export interface RotationLineup {
   rotation: string
   front: string[]
   back: string[]
+  /** Off-court player for 6+1 squads; empty when absent. */
+  sub: string
   /** Which line-up block in the sheet this came from, for sheets that record more than one. */
   blockLabel: string
 }

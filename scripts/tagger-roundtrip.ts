@@ -1,5 +1,6 @@
-/** Round-trip check: export a tiny tagged session and parse it with the dashboard parser. */
+/** Round-trip check: export a tagged session and parse it with the dashboard parser. */
 import { exportTaggerCsv } from '../src/tagger/exportCsv'
+import { autofillLineupsFrom, emptyCourtLineup, isLineupComplete } from '../src/tagger/lineupRotation'
 import { parseSession } from '../src/lib/parse'
 import type { LineupDraft, TaggedRally } from '../src/tagger/types'
 
@@ -14,6 +15,11 @@ const rallies: TaggedRally[] = [
     players: [],
     rotation: '1',
     notes: 'served net',
+    touches: [
+      { player: 'Alec', skill: 'r', quality: 2 },
+      { player: 'Ish', skill: 's', quality: 3 },
+      { player: 'Michelle', skill: 'a', quality: 1 },
+    ],
   },
   {
     id: '2',
@@ -25,6 +31,7 @@ const rallies: TaggedRally[] = [
     players: ['Sofia'],
     rotation: '1',
     notes: '',
+    touches: [],
   },
   {
     id: '3',
@@ -36,13 +43,24 @@ const rallies: TaggedRally[] = [
     players: ['Sofia'],
     rotation: '1',
     notes: 'out',
+    touches: [],
   },
 ]
 
-const lineups: LineupDraft[] = [
-  { rotation: '1', front: ['Avy', 'Amber', 'Alec'], back: ['Michelle', 'Ish', 'Sofia'] },
-  { rotation: '2', front: ['Michelle', 'Avy', 'Amber'], back: ['Ish', 'Sofia', 'Alec'] },
-]
+const base: LineupDraft = {
+  rotation: '1',
+  front: ['Avy', 'Amber', 'Alec'],
+  back: ['Michelle', 'Ish', 'Sofia'],
+  sub: 'Christie',
+}
+
+const shells = ['1', '2', '3', '4', '5', '6', '7'].map((rotation) =>
+  rotation === '1' ? base : emptyCourtLineup(rotation),
+)
+const lineups = autofillLineupsFrom(0, shells)
+if (!lineups.every(isLineupComplete)) throw new Error('autofill left incomplete lineups')
+if (lineups[1].front[0] !== 'Christie') throw new Error('sub should enter front-left on rotate')
+if (lineups[1].sub !== 'Michelle') throw new Error('left-back should sit after rotate')
 
 const csv = exportTaggerCsv({
   rallies,
@@ -55,5 +73,7 @@ const csv = exportTaggerCsv({
 console.log(csv)
 const session = parseSession('2026-08-02.csv', csv)
 console.log('rallies', session.rallies.length)
-console.log('lineups', JSON.stringify(session.lineups))
+console.log('touches', JSON.stringify(session.rallies[0].touches))
+console.log('lineup1', JSON.stringify(session.lineups[0]))
+console.log('lineup2', JSON.stringify(session.lineups[1]))
 console.log('serverInference ok', session.serverInference.ok)

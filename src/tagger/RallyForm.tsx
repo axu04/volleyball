@@ -1,4 +1,6 @@
 import { ALL_CAUSES } from '../lib/causes'
+import type { Touch, TouchSkill } from '../lib/touches'
+import { TouchTracker } from './TouchTracker'
 
 const SETS = ['1', '2', '3', 'et'] as const
 
@@ -13,11 +15,20 @@ export function RallyForm({
   notes,
   roster,
   canCommit,
+  touches,
+  touchActive,
+  pendingTouchPlayer,
   onChange,
   onCommit,
   onNextRotation,
   onAddRotation,
   onRemoveRotation,
+  onTouchStart,
+  onTouchStop,
+  onTouchSelectPlayer,
+  onTouchRecord,
+  onTouchUndo,
+  onTouchClear,
 }: {
   set: string
   rotation: string
@@ -29,6 +40,9 @@ export function RallyForm({
   notes: string
   roster: string[]
   canCommit: boolean
+  touches: Touch[]
+  touchActive: boolean
+  pendingTouchPlayer: string | null
   onChange: (patch: {
     set?: string
     rotation?: string
@@ -42,6 +56,12 @@ export function RallyForm({
   onNextRotation: () => void
   onAddRotation: () => void
   onRemoveRotation: (label: string) => void
+  onTouchStart: () => void
+  onTouchStop: () => void
+  onTouchSelectPlayer: (name: string | null) => void
+  onTouchRecord: (skill: TouchSkill, quality: 0 | 1 | 2 | 3) => void
+  onTouchUndo: () => void
+  onTouchClear: () => void
 }) {
   const causes = ALL_CAUSES.filter((c) => {
     if (won === null) return true
@@ -74,17 +94,24 @@ export function RallyForm({
               type="button"
               className={`chip ${rotation === r ? 'on' : ''}`}
               onClick={() => onChange({ rotation: r })}
-              onContextMenu={(e) => {
-                e.preventDefault()
-                if (rotations.length > 1 && confirm(`Remove rotation ${r}?`)) onRemoveRotation(r)
-              }}
-              title={rotations.length > 1 ? 'Right-click to remove' : undefined}
             >
               {r}
             </button>
           ))}
-          <button type="button" className="chip" onClick={onAddRotation} title="Add another rotation">
+          <button type="button" className="chip" onClick={onAddRotation} title="Add rotation">
             +
+          </button>
+          <button
+            type="button"
+            className="chip"
+            onClick={() => {
+              if (rotations.length <= 1) return
+              onRemoveRotation(rotation)
+            }}
+            disabled={rotations.length <= 1}
+            title={rotations.length <= 1 ? 'Keep at least one rotation' : `Remove rotation ${rotation}`}
+          >
+            −
           </button>
           <button type="button" className="chip ghost" onClick={onNextRotation} title="Advance rotation">
             Next →
@@ -101,6 +128,19 @@ export function RallyForm({
           </button>
         </div>
       </div>
+
+      <TouchTracker
+        roster={roster}
+        touches={touches}
+        active={touchActive}
+        pendingPlayer={pendingTouchPlayer}
+        onStart={onTouchStart}
+        onStop={onTouchStop}
+        onSelectPlayer={onTouchSelectPlayer}
+        onRecord={onTouchRecord}
+        onUndo={onTouchUndo}
+        onClear={onTouchClear}
+      />
 
       <div className="won-row">
         <button

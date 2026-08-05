@@ -1,4 +1,5 @@
 import type { LineupDraft, TaggerDraft } from './types'
+import { emptyCourtLineup, normalizeLineup } from './lineupRotation'
 import { defaultRotations, emptyDraft, emptyLineups } from './types'
 
 const KEY = 'volleyball-mania-tagger-draft-v1'
@@ -20,12 +21,16 @@ function migrate(raw: Partial<TaggerDraft>): TaggerDraft {
   // Keep rotations and lineups aligned: every rotation has a lineup row.
   for (const rot of rotations) {
     if (!lineups.some((l) => l.rotation === rot)) {
-      lineups.push({ rotation: rot, front: ['', '', ''], back: ['', '', '', ''] })
+      lineups.push(emptyCourtLineup(rot))
     }
   }
   lineups = lineups.filter((l) => rotations.includes(l.rotation))
-  // Preserve rotation order.
-  lineups = rotations.map((rot) => lineups.find((l) => l.rotation === rot)!)
+  lineups = rotations.map((rot) => normalizeLineup(lineups.find((l) => l.rotation === rot)!))
+
+  const rallies = (raw.rallies ?? []).map((r) => ({
+    ...r,
+    touches: r.touches ?? [],
+  }))
 
   return {
     ...base,
@@ -33,6 +38,7 @@ function migrate(raw: Partial<TaggerDraft>): TaggerDraft {
     version: 1,
     rotations,
     lineups,
+    rallies,
     lineupBlocks: undefined,
   }
 }
@@ -104,7 +110,7 @@ export function addRotation(rotations: string[], lineups: LineupDraft[]): {
   const next = String((nums.length ? Math.max(...nums) : 0) + 1)
   return {
     rotations: [...rotations, next],
-    lineups: [...lineups, { rotation: next, front: ['', '', ''], back: ['', '', '', ''] }],
+    lineups: [...lineups, emptyCourtLineup(next)],
     added: next,
   }
 }
