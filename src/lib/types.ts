@@ -48,6 +48,7 @@ export interface Rally {
    * Empty for older sheets that never recorded touches.
    */
   touches: Touch[]
+  /** End-of-rally mark in the match film (m:ss / h:mm:ss), as written in the sheet. */
   videoTimestamp: string
   /**
    * Who was at the service line. Derived from the rotation plus the line-up block, and only

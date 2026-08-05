@@ -8,7 +8,8 @@ import { playerColor } from '../components/ui'
 import './film.css'
 
 const KEY = 'sdwfu-film-player'
-const PAD_BEFORE = 2
+/** Sheet timestamps mark when the rally ends; pad a beat after so the whistle lands. */
+const PAD_AFTER = 2
 const DEFAULT_CLIP = 18
 const MAX_CLIP = 45
 
@@ -19,10 +20,13 @@ export interface ErrorClip {
   end: number
 }
 
-/** End the clip at the next rally in the same set, or a short default window. */
+/**
+ * Timestamps are end-of-rally. Clip from the previous rally's end (or a default lookback)
+ * through this rally's end.
+ */
 function clipWindow(rally: Rally, session: Session): { start: number; end: number } | null {
-  const startRaw = parseVideoTimestamp(rally.videoTimestamp)
-  if (startRaw === null) return null
+  const endRaw = parseVideoTimestamp(rally.videoTimestamp)
+  if (endRaw === null) return null
 
   const peers = session.rallies
     .filter((r) => r.set === rally.set)
@@ -31,12 +35,14 @@ function clipWindow(rally: Rally, session: Session): { start: number; end: numbe
     .sort((a, b) => a.t - b.t || a.r.n - b.r.n)
 
   const idx = peers.findIndex((p) => p.r.id === rally.id)
-  const next = idx >= 0 ? peers[idx + 1] : undefined
-  let end = next ? next.t : startRaw + DEFAULT_CLIP
-  if (end <= startRaw) end = startRaw + DEFAULT_CLIP
-  end = Math.min(end, startRaw + MAX_CLIP)
+  const prev = idx > 0 ? peers[idx - 1] : undefined
 
-  const start = Math.max(0, startRaw - PAD_BEFORE)
+  let start = prev ? prev.t : Math.max(0, endRaw - DEFAULT_CLIP)
+  let end = endRaw + PAD_AFTER
+
+  if (end <= start) start = Math.max(0, end - DEFAULT_CLIP)
+  if (end - start > MAX_CLIP) start = Math.max(0, end - MAX_CLIP)
+
   return { start, end: Math.max(start + 4, end) }
 }
 
@@ -175,7 +181,7 @@ export default function FilmApp() {
         <div>
           <h1>Error film</h1>
           <div className="sub">
-            Pick a player · every tagged error with a timestamp becomes a YouTube clip (start → next rally)
+            Pick a player · timestamps are end-of-rally, so each clip runs from the previous point through this one
           </div>
         </div>
         <div className="badge-row">
