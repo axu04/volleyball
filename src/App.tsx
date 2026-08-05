@@ -109,6 +109,9 @@ export default function App() {
           </div>
         </div>
         <div className="badge-row">
+          <a className="chip" href="/">
+            Home
+          </a>
           <a className="chip" href="/film">
             Error film
           </a>

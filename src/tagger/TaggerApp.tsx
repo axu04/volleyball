@@ -198,6 +198,9 @@ export default function TaggerApp() {
           </div>
           <div className="tagger-nav">
             <a className="chip" href="/">
+              Home
+            </a>
+            <a className="chip" href="/stats">
               Dashboard
             </a>
             <a className="chip" href="/film">

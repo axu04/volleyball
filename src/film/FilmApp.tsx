@@ -259,6 +259,9 @@ export default function FilmApp() {
         </div>
         <div className="badge-row">
           <a className="chip" href="/">
+            Home
+          </a>
+          <a className="chip" href="/stats">
             Dashboard
           </a>
           {player && (
