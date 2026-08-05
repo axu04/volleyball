@@ -90,16 +90,6 @@
   padding: 12px;
 }
 
-.film-source {
-  margin-top: 6px;
-  font-size: 12.5px;
-}
-
-.film-source a {
-  color: var(--text);
-  margin-right: 10px;
-}
-
 .film-player {
   position: relative;
   width: 100%;

@@ -135,22 +135,6 @@ function SessionFilmPlayer({
 export default function FilmApp() {
   const sessions = useMemo(() => loadBundledSessions().sessions, [])
   const roster = useMemo(() => rosterWithErrors(sessions), [sessions])
-  const sessionFilm = useMemo(() => {
-    const bySet: Array<{ set: string; url: string }> = []
-    for (const s of sessions) {
-      const entries = Object.entries(s.youtubeBySet)
-      if (entries.length) {
-        for (const [set, url] of entries.sort((a, b) =>
-          a[0].localeCompare(b[0], undefined, { numeric: true }),
-        )) {
-          bySet.push({ set: `${s.label} set ${set}`, url })
-        }
-      } else if (s.youtubeUrl) {
-        bySet.push({ set: s.label, url: s.youtubeUrl })
-      }
-    }
-    return bySet
-  }, [sessions])
 
   const [player, setPlayer] = useState<string | null>(() => {
     try {
@@ -213,18 +197,6 @@ export default function FilmApp() {
           <div className="sub">
             Each rally stores its YouTube link (usually one film per set) · timestamps are end-of-rally
           </div>
-          {sessionFilm.length > 0 && (
-            <div className="film-source muted">
-              {sessionFilm.map(({ set, url }) => (
-                <span key={`${set}-${url}`} style={{ marginRight: 12 }}>
-                  {set}:{' '}
-                  <a href={url} target="_blank" rel="noreferrer">
-                    {extractVideoId(url) ?? url}
-                  </a>
-                </span>
-              ))}
-            </div>
-          )}
         </div>
         <div className="badge-row">
           <a className="chip" href="/">
