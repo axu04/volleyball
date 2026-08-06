@@ -20,6 +20,7 @@ export default function Landing() {
         <nav className="landing-nav-links">
           <a href="/stats">Dashboard</a>
           <a href="/film">Error film</a>
+          <a href="/glossary">Glossary</a>
         </nav>
       </header>
 

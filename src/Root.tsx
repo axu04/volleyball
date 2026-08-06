@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import Dashboard from './App'
 import FilmApp from './film/FilmApp'
+import Glossary from './glossary/Glossary'
 import Landing from './landing/Landing'
 import TaggerApp from './tagger/TaggerApp'
 
@@ -8,6 +9,7 @@ function routeFor(pathname: string) {
   const path = pathname.replace(/\/+$/, '') || '/'
   if (path === '/tagger' || path.startsWith('/tagger/')) return 'tagger'
   if (path === '/film' || path.startsWith('/film/')) return 'film'
+  if (path === '/glossary' || path.startsWith('/glossary/')) return 'glossary'
   if (path === '/stats' || path.startsWith('/stats/') || path === '/dashboard') return 'dashboard'
   return 'landing'
 }
@@ -38,6 +40,7 @@ export default function Root() {
   const route = routeFor(path)
   if (route === 'tagger') return <TaggerApp />
   if (route === 'film') return <FilmApp />
+  if (route === 'glossary') return <Glossary />
   if (route === 'dashboard') return <Dashboard />
   return <Landing />
 }

@@ -264,6 +264,9 @@ export default function FilmApp() {
           <a className="chip" href="/stats">
             Dashboard
           </a>
+          <a className="chip" href="/glossary">
+            Glossary
+          </a>
           {player && (
             <div className="record-chip">
               <span className="big" style={{ color: 'var(--loss)' }}>

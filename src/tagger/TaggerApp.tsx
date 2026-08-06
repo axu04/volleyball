@@ -206,6 +206,9 @@ export default function TaggerApp() {
             <a className="chip" href="/film">
               Error film
             </a>
+            <a className="chip" href="/glossary">
+              Glossary
+            </a>
           </div>
         </div>
         <div className="badge-row">
