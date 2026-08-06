@@ -19,7 +19,7 @@ const MAX_CLIP = 28
 
 export interface ErrorClip {
   rally: Rally
-  /** Session-level match film from the sheet Videos column (same URL for every set). */
+  /** Match film for this rally — prefer the set's own Videos URL. */
   youtubeUrl: string
   start: number
   end: number

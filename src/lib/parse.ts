@@ -293,7 +293,7 @@ export function parseSession(fileName: string, text: string): Session {
   }
 
   let youtubeUrl = ''
-  let lastRallyUrl = ''
+  const lastUrlBySet: Record<string, string> = {}
   const normalizeVideoCell = (cell: string): string => {
     if (!cell || !/youtu\.?be|youtube\.com/i.test(cell)) return ''
     const id = extractVideoId(cell)
@@ -348,13 +348,13 @@ export function parseSession(fileName: string, text: string): Session {
 
     if (!cause) warnings.push(`Set ${set} rally ${c.n} has no cause tagged.`)
 
-    // Per-rally film link. A fresh URL in Videos updates the carry-forward; blank cells inherit
-    // the last URL so older sheets that only stamped the first row still work.
+    // Per-rally film link. A fresh URL in Videos updates that set's carry-forward; blank cells
+    // inherit the last URL for the same set only (so set 2 never picks up set 1's film).
     let rallyYoutube = ''
     if (cols.videos >= 0) {
       const fromCell = normalizeVideoCell(norm(row[cols.videos]))
-      if (fromCell) lastRallyUrl = fromCell
-      rallyYoutube = lastRallyUrl
+      if (fromCell) lastUrlBySet[set] = fromCell
+      rallyYoutube = lastUrlBySet[set] ?? ''
     }
     if (!rallyYoutube) rallyYoutube = youtubeUrl
 
