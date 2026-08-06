@@ -28,8 +28,16 @@ const ERROR_GROUPS = [
   { key: 'coverageErrs' as const, label: GROUPS.defense, color: '#a1a1a1' },
 ]
 
-export function Players({ rallies }: { rallies: Rally[] }) {
-  const players = playerStats(rallies)
+export function Players({
+  rallies,
+  focusPlayers = [],
+}: {
+  rallies: Rally[]
+  focusPlayers?: string[]
+}) {
+  const players = playerStats(rallies).filter((p) =>
+    focusPlayers.length ? focusPlayers.includes(p.name) : true,
+  )
   if (!players.length) return <Empty>No players tagged in these rallies.</Empty>
 
   const maxNet = Math.max(1, ...players.map((p) => Math.abs(p.net)))
@@ -98,7 +106,7 @@ export function Players({ rallies }: { rallies: Rally[] }) {
       key: 'errorRate',
       label: 'Err rate',
       value: (p) => p.errorRate,
-      title: 'Errors per rally this player is tagged in',
+      title: 'Their charged errors ÷ rallies they are named on (cause column) — not all rallies they touched',
       render: (p) => <span className="muted">{fmtPct(p.errorRate)}</span>,
     },
     {

@@ -22,6 +22,14 @@ const MATCH: Entry[] = [
     def: 'Which lineup position we are in (1–6, plus any extra labels). Changes after we side-out.',
   },
   {
+    term: 'Error rate (team)',
+    def: 'Share of all rallies that ended as our unforced error.',
+  },
+  {
+    term: 'Error rate when tagged',
+    def: 'For a player: their charged errors ÷ rallies they are named on in the cause column. Digging a ball without being the named cause does not count in this denominator.',
+  },
+  {
     term: 'Net (player)',
     def: 'Earned points credited to you minus your unforced errors. Positive = helping more than hurting.',
   },

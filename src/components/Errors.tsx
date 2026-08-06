@@ -17,9 +17,24 @@ import { Bar, Card, Empty, Stat, fmtPct } from './ui'
 
 const axis = { stroke: '#333333', fontSize: 11, tickLine: false }
 
-export function Errors({ rallies }: { rallies: Rally[] }) {
+export function Errors({
+  rallies,
+  focusPlayers = [],
+}: {
+  /** Cause-tagged subset when a player is focused. */
+  rallies: Rally[]
+  focusPlayers?: string[]
+}) {
   const errs = rallies.filter((r) => isOurError(r.cause, r.won))
-  if (!rallies.length) return <Empty>No rallies match these filters.</Empty>
+  if (!rallies.length) {
+    return (
+      <Empty>
+        {focusPlayers.length
+          ? 'No cause-tagged rallies for this player in the current filters.'
+          : 'No rallies match these filters.'}
+      </Empty>
+    )
+  }
 
   const c = coreStats(rallies)
   const groups = errorGroups(rallies)
@@ -40,16 +55,27 @@ export function Errors({ rallies }: { rallies: Rally[] }) {
   })
 
   const topCause = causes[0]
+  const focused = focusPlayers.length > 0
 
   return (
     <>
+      {focused && (
+        <div className="notice" style={{ marginBottom: 14 }}>
+          Errors charged to {focusPlayers.join(', ')} on rallies they are named on — rate uses those tagged
+          rallies as the denominator.
+        </div>
+      )}
       <div className="stat-grid">
         <Stat
           label="Errors charged to us"
           value={c.errors}
-          detail={`${fmtPct(c.errorRate, 1)} of all rallies`}
+          detail={`${fmtPct(c.errorRate, 1)} of ${focused ? 'tagged' : 'all'} rallies`}
           tone="var(--loss)"
-          hint="Every rally we lost except the ones the opponent genuinely earned."
+          hint={
+            focused
+              ? 'Their charged errors ÷ rallies they are named on.'
+              : 'Every rally we lost except the ones the opponent genuinely earned.'
+          }
         />
         <Stat
           label="Self-inflicted losses"

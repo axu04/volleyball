@@ -6,9 +6,19 @@ import type { Column } from './ui'
 
 const axis = { stroke: '#333333', fontSize: 11, tickLine: false }
 
-export function Serving({ rallies, sessions }: { rallies: Rally[]; sessions: Session[] }) {
+export function Serving({
+  rallies,
+  sessions,
+  focusPlayers = [],
+}: {
+  rallies: Rally[]
+  sessions: Session[]
+  focusPlayers?: string[]
+}) {
   const c = coreStats(rallies)
-  const servers = serveStats(rallies)
+  const servers = serveStats(rallies).filter((s) =>
+    focusPlayers.length ? focusPlayers.includes(s.name) : true,
+  )
   const blocked = sessions.filter((s) => !s.serverInference.ok)
 
   const columns: Column<(typeof servers)[number]>[] = [

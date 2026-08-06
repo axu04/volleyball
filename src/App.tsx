@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type DragEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState, type DragEvent } from 'react'
 import { Errors } from './components/Errors'
 import { Flow } from './components/Flow'
 import { Log } from './components/Log'
@@ -27,6 +27,9 @@ const TABS = [
   'Rally log',
 ] as const
 type Tab = (typeof TABS)[number]
+
+/** Tabs that need full-set / team structure — player focus would invent fake scorelines. */
+const TEAM_ONLY_TABS: Tab[] = ['Match flow', 'Rotations']
 
 const bundled = loadBundledSessions()
 
@@ -62,14 +65,32 @@ export default function App() {
     [activeSessions],
   )
 
-  const rallies = useMemo(
+  /** Session / set / phase only — the denominator for team and per-player attribution. */
+  const contextRallies = useMemo(
     () =>
       activeSessions
         .flatMap((s) => s.rallies)
         .filter((r) => (pickedSets.length ? pickedSets.includes(r.set) : true))
-        .filter((r) => (pickedPlayers.length ? rallyInvolvesAnyPlayer(r, pickedPlayers) : true))
         .filter((r) => (phase === 'all' ? true : phase === 'serve' ? r.serving : !r.serving)),
-    [activeSessions, pickedSets, pickedPlayers, phase],
+    [activeSessions, pickedSets, phase],
+  )
+
+  /** Rallies where selected players are named on the cause (kill, error, …). */
+  const causeRallies = useMemo(
+    () =>
+      pickedPlayers.length
+        ? contextRallies.filter((r) => pickedPlayers.some((p) => r.players.includes(p)))
+        : contextRallies,
+    [contextRallies, pickedPlayers],
+  )
+
+  /** Cause tag or graded touch — for touch film / rally log / touch tab. */
+  const touchRallies = useMemo(
+    () =>
+      pickedPlayers.length
+        ? contextRallies.filter((r) => rallyInvolvesAnyPlayer(r, pickedPlayers))
+        : contextRallies,
+    [contextRallies, pickedPlayers],
   )
 
   const onDrop = useCallback(async (e: DragEvent) => {
@@ -84,10 +105,17 @@ export default function App() {
   const toggle = <T,>(list: T[], value: T, set: (v: T[]) => void) =>
     set(list.includes(value) ? list.filter((x) => x !== value) : [...list, value])
 
+  const playerFilterOn = pickedPlayers.length > 0
+  const visibleTabs = TABS.filter((t) => !(playerFilterOn && TEAM_ONLY_TABS.includes(t)))
+
+  useEffect(() => {
+    if (playerFilterOn && TEAM_ONLY_TABS.includes(tab)) setTab('Overview')
+  }, [playerFilterOn, tab])
+
   const decidedSets = activeSessions.flatMap((s) => s.sets).filter((s) => s.decided)
   const setsWon = decidedSets.filter((s) => s.won).length
   const setsTotal = decidedSets.length
-  const core = coreStats(rallies)
+  const core = coreStats(contextRallies)
   const warnings = activeSessions.flatMap((s) => s.warnings.map((w) => `${s.label}: ${w}`))
 
   const dateRange =
@@ -217,7 +245,7 @@ export default function App() {
                   key={p}
                   className={`chip ${pickedPlayers.includes(p) ? 'on' : ''}`}
                   onClick={() => toggle(pickedPlayers, p, setPickedPlayers)}
-                  title="Cause tag or touch sequence"
+                  title="Focus this player — Overview/Players use cause tags; Touches use contacts"
                 >
                   {p}
                 </button>
@@ -226,14 +254,14 @@ export default function App() {
           </div>
 
           <nav className="tabs">
-            {TABS.map((t) => (
+            {visibleTabs.map((t) => (
               <button key={t} className={`tab ${tab === t ? 'on' : ''}`} onClick={() => setTab(t)}>
                 {t}
               </button>
             ))}
           </nav>
 
-          {warnings.length > 0 && tab === 'Overview' && (
+          {warnings.length > 0 && tab === 'Overview' && !playerFilterOn && (
             <div className="notice">
               <b>Tracking gaps</b>
               <ul>
@@ -245,16 +273,18 @@ export default function App() {
           )}
 
           {tab === 'Overview' && (
-            <Overview rallies={rallies} sessions={activeSessions} focusPlayers={pickedPlayers} />
+            <Overview rallies={contextRallies} sessions={activeSessions} focusPlayers={pickedPlayers} />
           )}
-          {tab === 'Touches' && <Touches rallies={rallies} focusPlayers={pickedPlayers} />}
-          {tab === 'Players' && <Players rallies={rallies} />}
-          {tab === 'Serving' && <Serving rallies={rallies} sessions={activeSessions} />}
-          {tab === 'Rotations' && <Rotations rallies={rallies} sessions={activeSessions} />}
-          {tab === 'Errors' && <Errors rallies={rallies} />}
-          {tab === 'Match flow' && <Flow rallies={rallies} sessions={activeSessions} />}
+          {tab === 'Touches' && <Touches rallies={touchRallies} focusPlayers={pickedPlayers} />}
+          {tab === 'Players' && <Players rallies={contextRallies} focusPlayers={pickedPlayers} />}
+          {tab === 'Serving' && (
+            <Serving rallies={contextRallies} sessions={activeSessions} focusPlayers={pickedPlayers} />
+          )}
+          {tab === 'Rotations' && <Rotations rallies={contextRallies} sessions={activeSessions} />}
+          {tab === 'Errors' && <Errors rallies={causeRallies} focusPlayers={pickedPlayers} />}
+          {tab === 'Match flow' && <Flow rallies={contextRallies} sessions={activeSessions} />}
           {tab === 'Over time' && <Trends sessions={activeSessions} />}
-          {tab === 'Rally log' && <Log rallies={rallies} />}
+          {tab === 'Rally log' && <Log rallies={touchRallies} />}
         </>
       )}
     </div>

@@ -37,11 +37,144 @@ export function Overview({
   sessions,
   focusPlayers = [],
 }: {
+  /** Session/set/phase context — not pre-filtered by player involvement. */
   rallies: Rally[]
   sessions: Session[]
   focusPlayers?: string[]
 }) {
   if (!rallies.length) return <Empty>No rallies match these filters.</Empty>
+
+  const focus = focusPlayers.length ? focusPlayers : undefined
+  const allPlayerStats = playerStats(rallies)
+  const focusedPlayers = focus ? allPlayerStats.filter((p) => focus.includes(p.name)) : allPlayerStats
+
+  if (focus && !focusedPlayers.length) {
+    return (
+      <Empty>
+        {focus.join(', ')} {focus.length === 1 ? 'is' : 'are'} not named on any cause tags in this filter. Check
+        Touches for contact grades.
+      </Empty>
+    )
+  }
+
+  // Player focus: personal attribution (cause tags), not team rates on "rallies they touched".
+  if (focus) {
+    const involved = focusedPlayers.reduce((s, p) => s + p.involved, 0)
+    const wins = focusedPlayers.reduce((s, p) => s + p.wins, 0)
+    const errors = focusedPlayers.reduce((s, p) => s + p.errors, 0)
+    const plus = focusedPlayers.reduce((s, p) => s + p.plus, 0)
+    const kills = focusedPlayers.reduce((s, p) => s + p.kills, 0)
+    const aces = focusedPlayers.reduce((s, p) => s + p.aces, 0)
+    const forced = focusedPlayers.reduce((s, p) => s + p.forced, 0)
+    const net = focusedPlayers.reduce((s, p) => s + p.net, 0)
+    const serveErrs = focusedPlayers.reduce((s, p) => s + p.serveErrs, 0)
+    const acedOn = focusedPlayers.reduce((s, p) => s + p.acedOn, 0)
+    const errorRate = involved ? (errors / involved) * 100 : 0
+    const winPct = involved ? (wins / involved) * 100 : 0
+    const who = focus.length === 1 ? focus[0]! : `${focus.length} players`
+
+    const touchTeam = ralliesWithTouches(rallies).length ? teamTouchSummary(rallies, focus) : null
+    const keepPct =
+      touchTeam && touchTeam.emergencies
+        ? (touchTeam.emergenciesKeptAlive / touchTeam.emergencies) * 100
+        : 0
+
+    const maxNet = Math.max(1, ...focusedPlayers.map((p) => Math.abs(p.net)))
+
+    return (
+      <>
+        <div className="notice" style={{ marginBottom: 14 }}>
+          Showing <b>{who}</b> on cause-tagged rallies only — error rate is errors ÷ rallies they are named on,
+          not every rally they touched.
+        </div>
+        <div className="stat-grid">
+          <Stat
+            label="Win% when tagged"
+            value={fmtPct(winPct, 1)}
+            detail={`${wins}–${involved - wins} · ${involved} tagged`}
+            tone={winPct >= 50 ? 'var(--win)' : 'var(--loss)'}
+            hint="Share of rallies this player is named on (cause column) that we won."
+          />
+          <Stat
+            label="Error rate when tagged"
+            value={fmtPct(errorRate, 1)}
+            detail={`${errors} errors on ${involved} tagged rallies`}
+            tone="var(--loss)"
+            hint="Their charged errors ÷ rallies they are named on. Touch-only digs do not count here."
+          />
+          <Stat
+            label="Net"
+            value={fmtSigned(net)}
+            detail={`${plus} earned − ${errors} errors`}
+            tone={net >= 0 ? 'var(--win)' : 'var(--loss)'}
+            hint="Kills + aces + forced opponent errors − our errors charged to them."
+          />
+          <Stat
+            label="Points credited"
+            value={plus}
+            detail={`${kills} kills · ${aces} aces · ${forced} forced`}
+            tone="var(--win)"
+          />
+          <Stat label="Serve errors" value={serveErrs} detail="charged to them" tone="var(--loss)" />
+          <Stat label="Aced on" value={acedOn} detail="receive errors" tone="#737373" />
+          {touchTeam && (
+            <>
+              <Stat
+                label="First ball avg"
+                value={touchTeam.firstBall.attempts ? touchTeam.firstBall.avg.toFixed(2) : '—'}
+                detail={`${touchTeam.firstBall.attempts} first contacts`}
+                tone={
+                  touchTeam.firstBall.avg >= 2
+                    ? 'var(--win)'
+                    : touchTeam.firstBall.avg >= 1
+                      ? 'var(--warn)'
+                      : 'var(--loss)'
+                }
+                hint="Their first contacts after opponent possession (Touches column)."
+              />
+              <Stat
+                label="Saves kept alive"
+                value={touchTeam.emergencies ? fmtPct(keepPct) : '—'}
+                detail={`${touchTeam.emergenciesKeptAlive}/${touchTeam.emergencies} emergency digs`}
+                tone="#22c55e"
+              />
+            </>
+          )}
+        </div>
+        <div className="grid g2" style={{ marginBottom: 14 }}>
+          <Card title="Net impact" hint="earned − errors">
+            <SimpleNet players={focusedPlayers} maxNet={maxNet} />
+          </Card>
+          <Card title="Error mix" hint="what they are charged with">
+            {focusedPlayers.map((p) => {
+              const entries = Object.entries(p.errorsByCause).sort((a, b) => b[1] - a[1])
+              if (!entries.length) {
+                return (
+                  <div key={p.name} className="muted" style={{ marginBottom: 10 }}>
+                    {p.name}: no charged errors
+                  </div>
+                )
+              }
+              return (
+                <div key={p.name} style={{ marginBottom: 14 }}>
+                  {focus.length > 1 && <div style={{ fontWeight: 600, marginBottom: 6 }}>{p.name}</div>}
+                  {entries.map(([key, count]) => (
+                    <div key={key} style={{ marginBottom: 8 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 4 }}>
+                        <span>{causeMeta(key).label}</span>
+                        <span className="mono muted">{count}</span>
+                      </div>
+                      <Bar value={count} max={errors || 1} color={causeMeta(key).color} />
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </Card>
+        </div>
+      </>
+    )
+  }
 
   const c = coreStats(rallies)
   const st = streaks(rallies)
@@ -58,7 +191,7 @@ export function Overview({
     .filter((w) => w.count > 0)
     .map((w) => ({ ...w, share: c.won > 0 ? (w.count / c.won) * 100 : 0 }))
   const phases = phaseStats(rallies)
-  const players = playerStats(rallies)
+  const players = allPlayerStats
   const maxNet = Math.max(1, ...players.map((p) => Math.abs(p.net)))
 
   // Our errors grouped by skill, then every losing cause that is not charged to us listed
@@ -82,9 +215,8 @@ export function Overview({
   const allSets = sessions.flatMap((s) => s.sets.map((set) => ({ ...set, session: s })))
   const decided = allSets.filter((s) => s.decided)
   const setsWon = decided.filter((s) => s.won).length
-  const focus = focusPlayers.length ? focusPlayers : undefined
   const touchTagged = ralliesWithTouches(rallies)
-  const touchTeam = touchTagged.length ? teamTouchSummary(rallies, focus) : null
+  const touchTeam = touchTagged.length ? teamTouchSummary(rallies) : null
   const keepPct =
     touchTeam && touchTeam.emergencies
       ? (touchTeam.emergenciesKeptAlive / touchTeam.emergencies) * 100
@@ -126,7 +258,7 @@ export function Overview({
           value={fmtPct(c.errorRate, 1)}
           detail={`${c.errors} errors · ${fmtPct(c.selfInflictedPct, 0)} of points lost`}
           tone="var(--loss)"
-          hint="Rallies we ended ourselves. Everything except points the opponent genuinely earned."
+          hint="Team: share of all rallies that ended as our unforced error."
         />
         <Stat
           label="Ace : serve error"
