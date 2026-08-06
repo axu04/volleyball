@@ -336,3 +336,75 @@ a.chip {
   letter-spacing: 0.04em;
 }
 
+
+/* ---------- Repo / admin panel ---------- */
+
+.repo-admin-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.repo-admin-save {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.chip.danger {
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+}
+
+.chip.danger:hover {
+  border-color: var(--loss);
+  color: #fff;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.notice.repo-ok {
+  background: rgba(34, 197, 94, 0.08);
+  border-color: rgba(34, 197, 94, 0.28);
+  color: #86efac;
+}
+
+.notice.repo-err {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.28);
+  color: #fca5a5;
+}
+
+.repo-file-list {
+  margin-top: 16px;
+}
+
+.repo-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.repo-table th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--text-faint);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0 8px 8px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.repo-table td {
+  padding: 9px 8px;
+  border-bottom: 1px solid var(--border-soft);
+  vertical-align: middle;
+}
+
+.repo-table tr:last-child td {
+  border-bottom: none;
+}

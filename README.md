@@ -23,9 +23,44 @@ Then open the URL Vite prints (default http://localhost:5177).
 3. Fill line-ups (and official scores when you know them) under **Line-ups & scores**
 4. Watch and tag: sticky Set / Rotation / Serving·Receiving, tap Won or Lost (or `Y`/`N`), pick a cause, optionally players, **Commit** (or Enter)
 5. Phase and rotation advance automatically on side-outs
-6. **Download CSV** → drop the file into `data/` → refresh the dashboard
+6. Save the match — either **Save this session → data/…** on the **Repo / admin** tab
+   (commits straight to the repo, no download), or **Download CSV** and drop the file into
+   `data/` yourself
 
 Drafts autosave in the browser so a refresh does not wipe a half-tagged match.
+
+## Saving to the repo (admin panel)
+
+The **Repo / admin** tab on `/tagger` writes CSVs straight into this repo's `data/` folder
+through a small serverless function (`api/data.ts`) that uses the GitHub Contents API. From
+there you can:
+
+- **Save this session** — commit the current tagging session as `data/<date>.csv` (overwrites
+  if it already exists).
+- **List / delete** the CSVs already in `data/`.
+
+Every save and delete is an ordinary **git commit**, so nothing is ever truly lost — a file
+deleted here still lives in history and can be restored with `git revert <commit>` or from the
+file's **History** on GitHub. Commit messages are greppable (`tagger: save …`, `tagger: delete …`).
+
+Because sessions are bundled at build time (see below), a save triggers a Vercel redeploy; the
+dashboard reflects the change once that finishes (~1–2 min).
+
+### Configuration (Vercel env vars)
+
+The endpoint is disabled until these **server-side** environment variables are set in the Vercel
+project (never commit them — they are not exposed to the browser):
+
+| Variable        | Purpose                                                                 |
+| --------------- | ----------------------------------------------------------------------- |
+| `GITHUB_TOKEN`  | Fine-grained PAT with **Contents: read and write** on this repo (or a classic token with `repo`). |
+| `GITHUB_REPO`   | `owner/name`, e.g. `axu04/volleyball`.                                    |
+| `GITHUB_BRANCH` | Target branch. Optional — defaults to `main`.                            |
+| `TAGGER_SECRET` | Shared password required by the panel for any save or delete.            |
+
+Enter the same `TAGGER_SECRET` value in the panel's **Admin password** field (it is remembered in
+your browser). The admin API only runs on the deployed site — under `vite dev` there is no
+`/api`, so the panel will report that it cannot reach it.
 
 ## Adding a new game (manual CSV)
 
