@@ -32,7 +32,15 @@ function TinyTip({ active, payload, suffix = '' }: any) {
   )
 }
 
-export function Overview({ rallies, sessions }: { rallies: Rally[]; sessions: Session[] }) {
+export function Overview({
+  rallies,
+  sessions,
+  focusPlayers = [],
+}: {
+  rallies: Rally[]
+  sessions: Session[]
+  focusPlayers?: string[]
+}) {
   if (!rallies.length) return <Empty>No rallies match these filters.</Empty>
 
   const c = coreStats(rallies)
@@ -74,8 +82,9 @@ export function Overview({ rallies, sessions }: { rallies: Rally[]; sessions: Se
   const allSets = sessions.flatMap((s) => s.sets.map((set) => ({ ...set, session: s })))
   const decided = allSets.filter((s) => s.decided)
   const setsWon = decided.filter((s) => s.won).length
+  const focus = focusPlayers.length ? focusPlayers : undefined
   const touchTagged = ralliesWithTouches(rallies)
-  const touchTeam = touchTagged.length ? teamTouchSummary(rallies) : null
+  const touchTeam = touchTagged.length ? teamTouchSummary(rallies, focus) : null
   const keepPct =
     touchTeam && touchTeam.emergencies
       ? (touchTeam.emergenciesKeptAlive / touchTeam.emergencies) * 100

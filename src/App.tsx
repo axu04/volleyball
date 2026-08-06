@@ -12,6 +12,7 @@ import { Empty, fmtPct } from './components/ui'
 import { loadBundledSessions, loadDroppedFiles, mergeSessions } from './lib/load'
 import { compareLabels, formatDateLong } from './lib/parse'
 import { coreStats } from './lib/stats'
+import { rallyInvolvesAnyPlayer, touchParticipantNames } from './lib/touchStats'
 import type { Session } from './lib/types'
 
 const TABS = [
@@ -51,7 +52,13 @@ export default function App() {
   )
 
   const allPlayers = useMemo(
-    () => [...new Set(activeSessions.flatMap((s) => s.players))].sort((a, b) => a.localeCompare(b)),
+    () =>
+      [
+        ...new Set([
+          ...activeSessions.flatMap((s) => s.players),
+          ...activeSessions.flatMap((s) => s.rallies.flatMap((r) => touchParticipantNames(r))),
+        ]),
+      ].sort((a, b) => a.localeCompare(b)),
     [activeSessions],
   )
 
@@ -60,7 +67,7 @@ export default function App() {
       activeSessions
         .flatMap((s) => s.rallies)
         .filter((r) => (pickedSets.length ? pickedSets.includes(r.set) : true))
-        .filter((r) => (pickedPlayers.length ? r.players.some((p) => pickedPlayers.includes(p)) : true))
+        .filter((r) => (pickedPlayers.length ? rallyInvolvesAnyPlayer(r, pickedPlayers) : true))
         .filter((r) => (phase === 'all' ? true : phase === 'serve' ? r.serving : !r.serving)),
     [activeSessions, pickedSets, pickedPlayers, phase],
   )
@@ -210,6 +217,7 @@ export default function App() {
                   key={p}
                   className={`chip ${pickedPlayers.includes(p) ? 'on' : ''}`}
                   onClick={() => toggle(pickedPlayers, p, setPickedPlayers)}
+                  title="Cause tag or touch sequence"
                 >
                   {p}
                 </button>
@@ -236,8 +244,10 @@ export default function App() {
             </div>
           )}
 
-          {tab === 'Overview' && <Overview rallies={rallies} sessions={activeSessions} />}
-          {tab === 'Touches' && <Touches rallies={rallies} />}
+          {tab === 'Overview' && (
+            <Overview rallies={rallies} sessions={activeSessions} focusPlayers={pickedPlayers} />
+          )}
+          {tab === 'Touches' && <Touches rallies={rallies} focusPlayers={pickedPlayers} />}
           {tab === 'Players' && <Players rallies={rallies} />}
           {tab === 'Serving' && <Serving rallies={rallies} sessions={activeSessions} />}
           {tab === 'Rotations' && <Rotations rallies={rallies} sessions={activeSessions} />}

@@ -15,6 +15,7 @@ import {
   firstBallOutcome,
   playerTouchStats,
   ralliesWithTouches,
+  rallyInvolvesAnyPlayer,
   teamTouchSummary,
 } from '../lib/touchStats'
 import type { Rally } from '../lib/types'
@@ -38,8 +39,18 @@ function Tip({ active, payload, label }: any) {
   )
 }
 
-export function Touches({ rallies }: { rallies: Rally[] }) {
-  const tagged = ralliesWithTouches(rallies)
+export function Touches({
+  rallies,
+  focusPlayers = [],
+}: {
+  rallies: Rally[]
+  /** When set, touch rates only count these players' contacts (full sequences still used for prev/next). */
+  focusPlayers?: string[]
+}) {
+  const focus = focusPlayers.length ? focusPlayers : undefined
+  const tagged = ralliesWithTouches(rallies).filter((r) =>
+    focus ? rallyInvolvesAnyPlayer(r, focus) : true,
+  )
   if (!tagged.length) {
     return (
       <Empty>
@@ -49,11 +60,11 @@ export function Touches({ rallies }: { rallies: Rally[] }) {
     )
   }
 
-  const team = teamTouchSummary(rallies)
-  const players = playerTouchStats(rallies)
-  const firstOut = firstBallOutcome(rallies)
-  const afterEm = afterEmergency(rallies)
-  const breaks = breakAttribution(rallies)
+  const team = teamTouchSummary(rallies, focus)
+  const players = playerTouchStats(rallies, focus)
+  const firstOut = firstBallOutcome(rallies, focus)
+  const afterEm = afterEmergency(rallies, focus)
+  const breaks = breakAttribution(rallies, focus)
 
   const gradeStack = team.bySkill
     .filter((s) => s.attempts > 0)

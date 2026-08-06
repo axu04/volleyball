@@ -5,6 +5,24 @@ export function playerTouches(seq: Touch[]): PlayerTouch[] {
   return seq.filter((t): t is PlayerTouch => !isOppTouch(t))
 }
 
+/** Players who appear in a rally's graded touch sequence. */
+export function touchParticipantNames(r: Rally): string[] {
+  return [...new Set(playerTouches(r.touches).map((t) => t.player))]
+}
+
+/** Cause-column tag and/or graded touch — used by the dashboard player filter. */
+export function rallyInvolvesPlayer(r: Rally, name: string): boolean {
+  return r.players.includes(name) || touchParticipantNames(r).includes(name)
+}
+
+export function rallyInvolvesAnyPlayer(r: Rally, names: string[]): boolean {
+  return names.some((n) => rallyInvolvesPlayer(r, n))
+}
+
+function allowPlayer(name: string, focus?: string[]): boolean {
+  return !focus?.length || focus.includes(name)
+}
+
 export function ralliesWithTouches(rallies: Rally[]): Rally[] {
   return rallies.filter((r) => playerTouches(r.touches).length > 0)
 }
@@ -112,7 +130,7 @@ export interface TeamTouchSummary {
   bySkill: SkillBucket[]
 }
 
-export function teamTouchSummary(rallies: Rally[]): TeamTouchSummary {
+export function teamTouchSummary(rallies: Rally[], focusPlayers?: string[]): TeamTouchSummary {
   const tagged = ralliesWithTouches(rallies)
   const allOur: PlayerTouch[] = []
   let possessions = 0
@@ -131,14 +149,24 @@ export function teamTouchSummary(rallies: Rally[]): TeamTouchSummary {
 
   for (const r of tagged) {
     const indexed = indexTouches(r.touches)
-    allOur.push(...indexed.map((x) => x.touch))
+    for (const x of indexed) {
+      if (!allowPlayer(x.touch.player, focusPlayers)) continue
+      allOur.push(x.touch)
+    }
 
     // Possessions ≈ number of `o` + 1 if sequence starts with our touch without leading o
     const oppMarks = r.touches.filter(isOppTouch).length
     const startsWithOur = r.touches.length > 0 && !isOppTouch(r.touches[0]!)
-    possessions += oppMarks + (startsWithOur ? 1 : 0)
+    if (!focusPlayers?.length) {
+      possessions += oppMarks + (startsWithOur ? 1 : 0)
+    } else {
+      // Count possessions where a focused player took the first ball after o / rally start.
+      possessions += indexed.filter((x) => x.afterOpp && allowPlayer(x.touch.player, focusPlayers)).length
+    }
 
     for (const x of indexed) {
+      if (!allowPlayer(x.touch.player, focusPlayers)) continue
+
       if (x.afterOpp) {
         firstBalls.push(x.touch)
         if (x.touch.quality >= 2) {
@@ -166,15 +194,24 @@ export function teamTouchSummary(rallies: Rally[]): TeamTouchSummary {
     const segments = splitPossessions(r.touches)
     for (const seg of segments) {
       const chain = findInSystem(seg)
-      if (chain) {
-        inSystemAttempts += 1
-        if (r.won && chain.attack) inSystemKills += 1
+      if (!chain) continue
+      if (
+        focusPlayers?.length &&
+        !allowPlayer(chain.receive.player, focusPlayers) &&
+        !allowPlayer(chain.set.player, focusPlayers) &&
+        !allowPlayer(chain.attack.player, focusPlayers)
+      ) {
+        continue
       }
+      inSystemAttempts += 1
+      if (r.won && chain.attack) inSystemKills += 1
     }
   }
 
   return {
-    ralliesTagged: tagged.length,
+    ralliesTagged: focusPlayers?.length
+      ? tagged.filter((r) => rallyInvolvesAnyPlayer(r, focusPlayers)).length
+      : tagged.length,
     ralliesTotal: rallies.length,
     ourTouches: allOur.length,
     possessions,
@@ -264,7 +301,7 @@ export interface PlayerTouchStat {
   bailedOutPct: number
 }
 
-export function playerTouchStats(rallies: Rally[]): PlayerTouchStat[] {
+export function playerTouchStats(rallies: Rally[], focusPlayers?: string[]): PlayerTouchStat[] {
   const tagged = ralliesWithTouches(rallies)
   type Acc = {
     touches: PlayerTouch[]
@@ -299,6 +336,7 @@ export function playerTouchStats(rallies: Rally[]): PlayerTouchStat[] {
   for (const r of tagged) {
     const indexed = indexTouches(r.touches)
     for (const x of indexed) {
+      if (!allowPlayer(x.touch.player, focusPlayers)) continue
       const a = acc(x.touch.player)
       a.touches.push(x.touch)
 
@@ -353,11 +391,15 @@ export function playerTouchStats(rallies: Rally[]): PlayerTouchStat[] {
 }
 
 /** Win rate by first-ball quality (0–3) after opponent possession. */
-export function firstBallOutcome(rallies: Rally[]): { quality: number; n: number; wins: number; winPct: number }[] {
+export function firstBallOutcome(
+  rallies: Rally[],
+  focusPlayers?: string[],
+): { quality: number; n: number; wins: number; winPct: number }[] {
   const buckets = [0, 1, 2, 3].map((quality) => ({ quality, n: 0, wins: 0, winPct: 0 }))
   for (const r of ralliesWithTouches(rallies)) {
     for (const x of indexTouches(r.touches)) {
       if (!x.afterOpp) continue
+      if (!allowPlayer(x.touch.player, focusPlayers)) continue
       const b = buckets[x.touch.quality]!
       b.n += 1
       if (r.won) b.wins += 1
@@ -368,7 +410,10 @@ export function firstBallOutcome(rallies: Rally[]): { quality: number; n: number
 }
 
 /** What follows an emergency dig (r≤1): next touch quality hist + terminal. */
-export function afterEmergency(rallies: Rally[]): { label: string; count: number; color: string }[] {
+export function afterEmergency(
+  rallies: Rally[],
+  focusPlayers?: string[],
+): { label: string; count: number; color: string }[] {
   let next0 = 0
   let next1 = 0
   let nextGood = 0
@@ -376,6 +421,7 @@ export function afterEmergency(rallies: Rally[]): { label: string; count: number
   for (const r of ralliesWithTouches(rallies)) {
     for (const x of indexTouches(r.touches)) {
       if (!(x.touch.skill === 'r' && x.touch.quality <= 1)) continue
+      if (!allowPlayer(x.touch.player, focusPlayers)) continue
       if (!x.next) {
         terminal += 1
         continue
@@ -394,7 +440,10 @@ export function afterEmergency(rallies: Rally[]): { label: string; count: number
 }
 
 /** Lost rallies: first our 0-touch vs sheet cause player — simple causal split. */
-export function breakAttribution(rallies: Rally[]): {
+export function breakAttribution(
+  rallies: Rally[],
+  focusPlayers?: string[],
+): {
   firstZeroPlayer: string
   n: number
   alsoCause: number
@@ -404,6 +453,7 @@ export function breakAttribution(rallies: Rally[]): {
     if (r.won) continue
     const firstZero = indexTouches(r.touches).find((x) => x.touch.quality === 0)
     if (!firstZero) continue
+    if (!allowPlayer(firstZero.touch.player, focusPlayers)) continue
     const name = firstZero.touch.player
     const cur = map.get(name) ?? { n: 0, alsoCause: 0 }
     cur.n += 1
