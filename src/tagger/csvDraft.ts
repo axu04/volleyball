@@ -132,6 +132,7 @@ export function importTaggerCsv(filename: string, csv: string, sha = ''): Import
         won: lastRally.won,
         rotation: lastRally.rotation || activePlan.rotations[0],
         rotations: activePlan.rotations,
+        isFirstRallyOfSet: rallies.filter((rally) => rally.set === lastRally.set).length === 1,
       })
     : { serving: true, rotation: activePlan.rotations[0] }
 

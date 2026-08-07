@@ -5,7 +5,7 @@ import { parseSession } from '../src/lib/parse'
 import { importTaggerCsv, mergeTaggerCsv } from '../src/tagger/csvDraft'
 import { inferSingleServeOutcome } from '../src/tagger/inference'
 import { createPlanForSet } from '../src/tagger/rotationPlans'
-import { addRotation } from '../src/tagger/state'
+import { addRotation, advanceAfterRally } from '../src/tagger/state'
 import { emptyDraft, type LineupDraft, type RotationPlan, type TaggedRally } from '../src/tagger/types'
 
 const inferredAce = inferSingleServeOutcome(true, true, [{ player: 'Sofia', skill: 'v', quality: 3 }])
@@ -31,6 +31,26 @@ if (
   ])
 ) {
   throw new Error('a later player touch must disable serve-only inference')
+}
+
+const openingSideout = advanceAfterRally({
+  serving: false,
+  won: true,
+  rotation: '1',
+  rotations: ['1', '2', '3'],
+  isFirstRallyOfSet: true,
+})
+if (!openingSideout.serving || openingSideout.rotation !== '1') {
+  throw new Error('opening receive win should keep the starting rotation')
+}
+const laterSideout = advanceAfterRally({
+  serving: false,
+  won: true,
+  rotation: '1',
+  rotations: ['1', '2', '3'],
+})
+if (!laterSideout.serving || laterSideout.rotation !== '2') {
+  throw new Error('later receive win should advance the rotation')
 }
 
 const rallies: TaggedRally[] = [

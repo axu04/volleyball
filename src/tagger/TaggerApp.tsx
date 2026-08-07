@@ -133,6 +133,7 @@ export default function TaggerApp() {
       won,
       rotation: draft.rotation,
       rotations: activePlan.rotations,
+      isFirstRallyOfSet: !draft.rallies.some((existing) => existing.set === draft.set),
     })
     setDraft((d) => ({
       ...d,
@@ -156,6 +157,7 @@ export default function TaggerApp() {
     draft.set,
     draft.serving,
     draft.rotation,
+    draft.rallies,
     activePlan.rotations,
     draft.youtubeUrl,
     resetTouchState,

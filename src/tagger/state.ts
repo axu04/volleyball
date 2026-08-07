@@ -92,18 +92,23 @@ export function clearDraft() {
 
 /**
  * After a rally is committed, advance sticky Serving/Receiving and Rotation the way volleyball
- * works: side-out → rotate and serve; win on serve → keep serving; any loss → we receive next.
+ * is tagged here: an opening receive win keeps the set's starting rotation; later side-outs
+ * advance and serve; a win on serve keeps serving; any loss means we receive next.
  */
 export function advanceAfterRally(args: {
   serving: boolean
   won: boolean
   rotation: string
   rotations: string[]
+  isFirstRallyOfSet?: boolean
 }): { serving: boolean; rotation: string } {
-  const { serving, won, rotation, rotations } = args
+  const { serving, won, rotation, rotations, isFirstRallyOfSet = false } = args
 
   if (won && !serving) {
-    return { serving: true, rotation: nextRotation(rotation, rotations) }
+    return {
+      serving: true,
+      rotation: isFirstRallyOfSet ? rotation : nextRotation(rotation, rotations),
+    }
   }
   if (won && serving) {
     return { serving: true, rotation }
