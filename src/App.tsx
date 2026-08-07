@@ -139,7 +139,7 @@ export default function App() {
         <div>
           <h1>Dashboard</h1>
           <div className="sub">
-            Sunday&apos;s Didn&apos;t Work For Us · {sessions.length} session
+            Sundays Didn&apos;t Work For Us · {sessions.length} session
             {sessions.length === 1 ? '' : 's'} · {dateRange || 'no data'}
           </div>
         </div>

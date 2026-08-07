@@ -198,7 +198,7 @@ export default function TaggerApp() {
         <div>
           <h1>Rally tagger</h1>
           <div className="sub">
-            Sunday&apos;s Didn&apos;t Work For Us · tag while watching, export CSV into{' '}
+            Sundays Didn&apos;t Work For Us · tag while watching, export CSV into{' '}
             <code>data/</code>
           </div>
           <div className="tagger-nav">

@@ -26,14 +26,15 @@ export default function Landing() {
 
       <section className="landing-hero">
         <h1 className="landing-brand">
-          Sunday&apos;s
+          Sundays
           <br />
           Didn&apos;t Work
           <br />
           For Us
         </h1>
         <p className="landing-lede">
-          Rec volleyball stats and error film — tag every rally, then watch the mistakes back.
+          Stats and error film for rec volleyball. The numbers are noisy, incomplete, and swing
+          wildly game to game — use them to ask better questions, not grade anyone.
         </p>
         <div className="landing-ctas">
           <a className="landing-cta-primary" href="/stats">
