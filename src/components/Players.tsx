@@ -77,16 +77,16 @@ export function Players({
       key: 'plus',
       label: 'Points',
       value: (p) => p.plus,
-      title: 'Kills + aces + forced opponent errors — every point the sheet names this player on',
+      title: 'Kills + aces + opponent errors credited to this player as our last touch',
       render: (p) => <span style={{ color: 'var(--win)' }}>{p.plus}</span>,
     },
     { key: 'kills', label: 'Kills', value: (p) => p.kills, render: (p) => p.kills },
     { key: 'aces', label: 'Aces', value: (p) => p.aces, render: (p) => p.aces },
     {
       key: 'forced',
-      label: 'Forced',
+      label: 'Opp err',
       value: (p) => p.forced,
-      title: 'opp_err rallies with this player named — they made the opponent miss',
+      title: 'opp_err rallies credited to this player as our last touch',
       render: (p) => p.forced,
     },
     {
@@ -168,10 +168,10 @@ export function Players({
         <SortableTable rows={players} columns={columns} rowKey={(p) => p.name} initialSort={{ key: 'net', dir: 'desc' }} />
         <div className="faint" style={{ fontSize: 11.5, marginTop: 10 }}>
           Credit follows the Player column exactly. On a rally we won that is who made the play — including{' '}
-          <code>opp_err</code> rallies, where naming someone means they forced the miss. On a rally we lost it is who
-          made the mistake, except <code>opp_point</code>, which the opponent earned and which therefore counts against
-          nobody. Net is points minus errors. Rallies naming two players credit both, so the column totals run slightly
-          ahead of the team totals.
+          <code>opp_err</code> rallies, where the named player is our last touch. Leave Player blank only when the
+          opponent served into the net. On a rally we lost, Player is who made the mistake, except{' '}
+          <code>opp_point</code>, which the opponent earned and which therefore counts against nobody. Net is points
+          minus errors. Rallies naming two players credit both, so the column totals run slightly ahead of team totals.
         </div>
       </Card>
 
@@ -288,7 +288,7 @@ export function Players({
                 </div>
                 <div>
                   <div className="faint" style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '.08em' }}>
-                    Forced
+                    Opp err
                   </div>
                   <div style={{ fontSize: 20, fontWeight: 650 }}>{p.forced}</div>
                 </div>

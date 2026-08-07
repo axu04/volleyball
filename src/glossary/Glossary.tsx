@@ -34,8 +34,8 @@ const MATCH: Entry[] = [
     def: 'Earned points credited to you minus your unforced errors. Positive = helping more than hurting.',
   },
   {
-    term: 'Forced',
-    def: 'Opponent error where you are named — you made them miss.',
+    term: 'Opponent error credit',
+    def: 'An opponent error credited to our named last-touch player. No player means the opponent served into the net.',
   },
   {
     term: 'Beaten',

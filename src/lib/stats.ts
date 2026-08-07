@@ -24,10 +24,10 @@ export interface CoreStats {
   oppErrPoints: number
   earnedWinPct: number
 
-  /** opp_err rallies where the sheet named one of our players — we made them miss. */
+  /** opp_err rallies where our last-touch player received credit. */
   forced: number
-  /** opp_err rallies with nobody named — genuinely unprompted opponent mistakes. */
-  unprompted: number
+  /** opp_err rallies with nobody named — reserved for an opponent serve into the net. */
+  badServeErrors: number
 
   errors: number
   errorRate: number
@@ -92,7 +92,7 @@ export function coreStats(rallies: Rally[]): CoreStats {
     oppErrPoints,
     earnedWinPct: pct(kills + aces, won),
     forced: count((r) => r.cause === 'opp_err' && r.players.length > 0),
-    unprompted: count((r) => r.cause === 'opp_err' && r.players.length === 0),
+    badServeErrors: count((r) => r.cause === 'opp_err' && r.players.length === 0),
 
     errors,
     errorRate: pct(errors, total),
@@ -216,9 +216,9 @@ export interface PlayerStat {
   losses: number
   kills: number
   aces: number
-  /** opp_err rallies the sheet put this player's name on — they made the opponent miss. */
+  /** opp_err rallies where this player was our last touch and received credit. */
   forced: number
-  /** kills + aces + forced errors: every point the sheet credits to this player */
+  /** kills + aces + credited opponent errors: every point the sheet credits to this player */
   plus: number
   errors: number
   /** opp_point rallies with this player's name. The opponent earned it; not counted as an error. */

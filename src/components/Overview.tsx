@@ -107,12 +107,12 @@ export function Overview({
             value={fmtSigned(net)}
             detail={`${plus} earned − ${errors} errors`}
             tone={net >= 0 ? 'var(--win)' : 'var(--loss)'}
-            hint="Kills + aces + forced opponent errors − our errors charged to them."
+            hint="Kills + aces + opponent errors credited to their last touch − our errors charged to them."
           />
           <Stat
             label="Points credited"
             value={plus}
-            detail={`${kills} kills · ${aces} aces · ${forced} forced`}
+            detail={`${kills} kills · ${aces} aces · ${forced} opp errors`}
             tone="var(--win)"
           />
           <Stat label="Serve errors" value={serveErrs} detail="charged to them" tone="var(--loss)" />
@@ -180,13 +180,17 @@ export function Overview({
   const st = streaks(rallies)
   const groups = errorGroups(rallies)
 
-  // Split opponent errors by whether the sheet named one of ours on the rally. Lumping all 38
-  // together as "gifts" hides the ones we actually forced.
+  // A named player gets last-touch credit. No-player opp_err is reserved for a bad opponent serve.
   const wins = [
-    { key: 'opp_err_forced', label: 'Forced opponent error', color: '#a1a1a1', count: c.forced },
+    { key: 'opp_err_credited', label: 'Opponent error (last touch)', color: '#a1a1a1', count: c.forced },
     { key: 'aced_on_them_suckas', label: 'Ace', color: causeMeta('aced_on_them_suckas').color, count: c.aces },
     { key: 'our_point', label: 'Kill / earned point', color: causeMeta('our_point').color, count: c.kills },
-    { key: 'opp_err_unprompted', label: 'Unprompted opponent error', color: '#525252', count: c.unprompted },
+    {
+      key: 'opp_err_bad_serve',
+      label: 'Unforced opponent error (bad serve)',
+      color: '#525252',
+      count: c.badServeErrors,
+    },
   ]
     .filter((w) => w.count > 0)
     .map((w) => ({ ...w, share: c.won > 0 ? (w.count / c.won) * 100 : 0 }))
@@ -247,11 +251,11 @@ export function Overview({
           hint="How often we win the rally when we serve. This is what extends runs."
         />
         <Stat
-          label="Forced opponent errors"
+          label="Opponent errors credited"
           value={c.forced}
-          detail={`plus ${c.unprompted} unprompted`}
+          detail={`plus ${c.badServeErrors} bad serve${c.badServeErrors === 1 ? '' : 's'}`}
           tone="#737373"
-          hint="opp_err rallies where the sheet named one of our players — we made them miss. The rest had nobody tagged."
+          hint="opp_err rallies with our last-touch player named. A no-player opp_err is reserved for an opponent serve into the net."
         />
         <Stat
           label="Error rate"

@@ -87,9 +87,9 @@ export function Trends({ sessions }: { sessions: Session[] }) {
     { key: 'kills', label: 'Kills', value: (t) => t.core.kills, render: (t) => t.core.kills },
     {
       key: 'forced',
-      label: 'Forced',
+      label: 'Opp err',
       value: (t) => t.core.forced,
-      title: 'Opponent errors with one of our players named on the rally',
+      title: 'Opponent errors credited to our named last-touch player',
       render: (t) => t.core.forced,
     },
     {

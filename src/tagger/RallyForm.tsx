@@ -181,8 +181,13 @@ export function RallyForm({
       </div>
 
       <div className="filter-label" style={{ margin: '14px 0 8px' }}>
-        Player <span className="faint">(optional for anonymous opp errors)</span>
+        Player <span className="faint">(last touch; blank only for opponent serve into net)</span>
       </div>
+      {cause === 'opp_err' && (
+        <div className="faint" style={{ fontSize: 11.5, margin: '-4px 0 8px' }}>
+          Select our last-touch player. Leave blank only when the opponent served into the net.
+        </div>
+      )}
       <div className="filter-group">
         {roster.length === 0 && <span className="faint">Add players in session setup.</span>}
         {roster.map((name) => (
