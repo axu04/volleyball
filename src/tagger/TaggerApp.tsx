@@ -5,6 +5,7 @@ import { downloadCsv, exportTaggerCsv } from './exportCsv'
 import { LineupEditor } from './LineupEditor'
 import { RallyForm } from './RallyForm'
 import { RallyLog } from './RallyLog'
+import { RepoAdmin } from './RepoAdmin'
 import { advanceAfterRally, addRotation, clearDraft, loadDraft, nextRotation, removeRotation, saveDraft } from './state'
 import type { TaggedRally, TaggerDraft } from './types'
 import { YouTubePlayer, type YouTubePlayerHandle } from './YouTubePlayer'
@@ -36,7 +37,7 @@ export default function TaggerApp() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [rosterInput, setRosterInput] = useState('')
   const [copied, setCopied] = useState(false)
-  const [panel, setPanel] = useState<'log' | 'lineups'>('log')
+  const [panel, setPanel] = useState<'log' | 'lineups' | 'admin'>('log')
 
   useEffect(() => {
     saveDraft(draft)
@@ -408,6 +409,9 @@ export default function TaggerApp() {
           <button type="button" className={`tab ${panel === 'lineups' ? 'on' : ''}`} onClick={() => setPanel('lineups')}>
             Line-ups & scores
           </button>
+          <button type="button" className={`tab ${panel === 'admin' ? 'on' : ''}`} onClick={() => setPanel('admin')}>
+            Repo / admin
+          </button>
         </div>
         {panel === 'log' ? (
           <RallyLog
@@ -431,7 +435,7 @@ export default function TaggerApp() {
               }))
             }}
           />
-        ) : (
+        ) : panel === 'lineups' ? (
           <LineupEditor
             lineups={draft.lineups}
             roster={draft.roster}
@@ -444,6 +448,8 @@ export default function TaggerApp() {
               patch({ rotations: next.rotations, lineups: next.lineups, rotation: next.rotation })
             }}
           />
+        ) : (
+          <RepoAdmin filename={filename} csv={csv} rallyCount={draft.rallies.length} />
         )}
       </section>
     </div>
