@@ -3,19 +3,27 @@ import type { LineupDraft, OfficialScore } from './types'
 
 export function LineupEditor({
   lineups,
+  activeSet,
+  planLabel,
+  sharedSets,
   roster,
   officialScores,
   setsSeen,
   onChangeLineups,
   onChangeScores,
+  onCreateSetRotation,
   onRemoveRotation,
 }: {
   lineups: LineupDraft[]
+  activeSet: string
+  planLabel: string
+  sharedSets: string[]
   roster: string[]
   officialScores: OfficialScore[]
   setsSeen: string[]
   onChangeLineups: (lineups: LineupDraft[]) => void
   onChangeScores: (scores: OfficialScore[]) => void
+  onCreateSetRotation: () => void
   onRemoveRotation?: (label: string) => void
 }) {
   const setSlot = (
@@ -50,10 +58,21 @@ export function LineupEditor({
   return (
     <div className="grid g2">
       <div>
-        <h3 style={{ fontSize: 14, marginBottom: 6 }}>Line-ups by rotation</h3>
+        <div className="repo-admin-head" style={{ marginBottom: 6 }}>
+          <h3 style={{ fontSize: 14, margin: 0 }}>
+            {planLabel} · set {activeSet}
+          </h3>
+          {sharedSets.length > 1 && (
+            <button type="button" className="chip" onClick={onCreateSetRotation}>
+              New rotation for set {activeSet}
+            </button>
+          )}
+        </div>
         <div className="faint" style={{ fontSize: 11.5, marginBottom: 12 }}>
           Six on court + one sub. Fill any rotation completely and the other six autofill — sub enters
-          front-left, squad rotates clockwise.
+          front-left, squad rotates clockwise. This plan is used by set{sharedSets.length === 1 ? '' : 's'}{' '}
+          {sharedSets.join(', ')}. A new set plan copies this lineup and safely relabels that set&apos;s existing
+          rallies.
         </div>
         <div className="grid" style={{ gap: 10 }}>
           {lineups.map((raw, rotIdx) => {

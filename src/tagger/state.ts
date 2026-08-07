@@ -1,10 +1,11 @@
-import type { LineupDraft, TaggerDraft } from './types'
+import type { LineupDraft, RotationPlan, TaggerDraft } from './types'
 import { emptyCourtLineup, normalizeLineup } from './lineupRotation'
+import { assignSetToPlan, normalizeRotationPlan, planForSet } from './rotationPlans'
 import { defaultRotations, emptyDraft, emptyLineups } from './types'
 
 const KEY = 'volleyball-mania-tagger-draft-v1'
 
-/** Fold older multi-block drafts into a single rotations + lineups list. */
+/** Normalize current drafts and migrate the older single-lineup shape into Rotation A. */
 function migrate(raw: Partial<TaggerDraft>): TaggerDraft {
   const base = emptyDraft()
   let rotations = raw.rotations?.length ? [...raw.rotations] : defaultRotations()
@@ -26,6 +27,21 @@ function migrate(raw: Partial<TaggerDraft>): TaggerDraft {
   }
   lineups = lineups.filter((l) => rotations.includes(l.rotation))
   lineups = rotations.map((rot) => normalizeLineup(lineups.find((l) => l.rotation === rot)!))
+  let rotationPlans: RotationPlan[] = raw.rotationPlans?.length
+    ? raw.rotationPlans.map(normalizeRotationPlan)
+    : [
+        {
+          id: 'plan-a',
+          label: 'Rotation A',
+          sets: ['1', '2', '3'],
+          rotations,
+          lineups,
+        },
+      ]
+  rotationPlans = assignSetToPlan(rotationPlans, raw.set ?? base.set)
+  const activePlan = planForSet({ rotationPlans, set: raw.set ?? base.set })
+  rotations = activePlan.rotations
+  lineups = activePlan.lineups
 
   const rallies = (raw.rallies ?? []).map((r) => ({
     ...r,
@@ -38,6 +54,8 @@ function migrate(raw: Partial<TaggerDraft>): TaggerDraft {
     version: 1,
     rotations,
     lineups,
+    rotationPlans,
+    rotation: activePlan.rotations.includes(raw.rotation ?? '') ? raw.rotation! : activePlan.rotations[0],
     rallies,
     lineupBlocks: undefined,
   }
@@ -108,7 +126,8 @@ export function addRotation(rotations: string[], lineups: LineupDraft[]): {
   added: string
 } {
   const nums = rotations.map((r) => parseInt(r, 10)).filter((n) => !Number.isNaN(n))
-  const next = String((nums.length ? Math.max(...nums) : 0) + 1)
+  const suffix = rotations[0]?.match(/^\d+([a-z]+)$/i)?.[1] ?? ''
+  const next = `${(nums.length ? Math.max(...nums) : 0) + 1}${suffix}`
   return {
     rotations: [...rotations, next],
     lineups: [...lineups, emptyCourtLineup(next)],

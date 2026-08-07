@@ -8,6 +8,7 @@ import { RallyLog } from './RallyLog'
 import { RepoAdmin } from './RepoAdmin'
 import { importTaggerCsv, repoSourceForDraft } from './csvDraft'
 import { inferSingleServeOutcome } from './inference'
+import { assignSetToPlan, createPlanForSet, planForSet, updateRotationPlan } from './rotationPlans'
 import { advanceAfterRally, addRotation, clearDraft, loadDraft, nextRotation, removeRotation, saveDraft } from './state'
 import type { TaggedRally, TaggerDraft } from './types'
 import { YouTubePlayer, type YouTubePlayerHandle } from './YouTubePlayer'
@@ -46,6 +47,46 @@ export default function TaggerApp() {
   }, [draft])
 
   const patch = useCallback((p: Partial<TaggerDraft>) => setDraft((d) => ({ ...d, ...p })), [])
+  const activePlan = planForSet(draft)
+
+  const changeSet = useCallback((set: string) => {
+    setDraft((current) => {
+      const rotationPlans = assignSetToPlan(current.rotationPlans, set)
+      const plan = planForSet({ rotationPlans, set })
+      return {
+        ...current,
+        set,
+        rotationPlans,
+        rotations: plan.rotations,
+        lineups: plan.lineups,
+        rotation: plan.rotations.includes(current.rotation) ? current.rotation : plan.rotations[0],
+      }
+    })
+  }, [])
+
+  const patchActivePlan = useCallback(
+    (
+      patchPlan: Partial<{
+        rotations: string[]
+        lineups: TaggerDraft['lineups']
+      }>,
+      rotation?: string,
+    ) => {
+      setDraft((current) => {
+        const plan = planForSet(current)
+        const rotationPlans = updateRotationPlan(current.rotationPlans, plan.id, patchPlan)
+        const updated = rotationPlans.find((candidate) => candidate.id === plan.id) ?? plan
+        return {
+          ...current,
+          rotationPlans,
+          rotations: updated.rotations,
+          lineups: updated.lineups,
+          rotation: rotation ?? (updated.rotations.includes(current.rotation) ? current.rotation : updated.rotations[0]),
+        }
+      })
+    },
+    [],
+  )
 
   const inferredServe = inferSingleServeOutcome(draft.serving, won, touches)
   const effectiveCause = inferredServe?.cause ?? cause
@@ -91,7 +132,7 @@ export default function TaggerApp() {
       serving: draft.serving,
       won,
       rotation: draft.rotation,
-      rotations: draft.rotations,
+      rotations: activePlan.rotations,
     })
     setDraft((d) => ({
       ...d,
@@ -115,7 +156,7 @@ export default function TaggerApp() {
     draft.set,
     draft.serving,
     draft.rotation,
-    draft.rotations,
+    activePlan.rotations,
     draft.youtubeUrl,
     resetTouchState,
   ])
@@ -165,7 +206,8 @@ export default function TaggerApp() {
         rallies: draft.rallies,
         youtubeUrl: draft.youtubeUrl,
         videoTitle: draft.videoTitle,
-        lineups: draft.lineups,
+        lineups: activePlan.lineups,
+        rotationPlans: draft.rotationPlans,
         officialScores: draft.officialScores.filter((s) => s.us > 0 || s.them > 0),
       }),
     [draft],
@@ -371,7 +413,7 @@ export default function TaggerApp() {
           <RallyForm
             set={draft.set}
             rotation={draft.rotation}
-            rotations={draft.rotations}
+            rotations={activePlan.rotations}
             serving={draft.serving}
             won={won}
             cause={effectiveCause}
@@ -383,7 +425,7 @@ export default function TaggerApp() {
             touchActive={touchActive}
             pendingTouchPlayer={pendingTouchPlayer}
             onChange={(p) => {
-              if (p.set !== undefined) patch({ set: p.set })
+              if (p.set !== undefined) changeSet(p.set)
               if (p.rotation !== undefined) patch({ rotation: p.rotation })
               if (p.serving !== undefined) patch({ serving: p.serving })
               if (p.won !== undefined) setWon(p.won)
@@ -392,14 +434,14 @@ export default function TaggerApp() {
               if (p.notes !== undefined) setNotes(p.notes)
             }}
             onCommit={commit}
-            onNextRotation={() => patch({ rotation: nextRotation(draft.rotation, draft.rotations) })}
+            onNextRotation={() => patch({ rotation: nextRotation(draft.rotation, activePlan.rotations) })}
             onAddRotation={() => {
-              const next = addRotation(draft.rotations, draft.lineups)
-              patch({ rotations: next.rotations, lineups: next.lineups, rotation: next.added })
+              const next = addRotation(activePlan.rotations, activePlan.lineups)
+              patchActivePlan({ rotations: next.rotations, lineups: next.lineups }, next.added)
             }}
             onRemoveRotation={(label) => {
-              const next = removeRotation(label, draft.rotations, draft.lineups, draft.rotation)
-              patch({ rotations: next.rotations, lineups: next.lineups, rotation: next.rotation })
+              const next = removeRotation(label, activePlan.rotations, activePlan.lineups, draft.rotation)
+              patchActivePlan({ rotations: next.rotations, lineups: next.lineups }, next.rotation)
             }}
             onTouchStart={() => setTouchActive(true)}
             onTouchStop={() => {
@@ -433,7 +475,7 @@ export default function TaggerApp() {
         {panel === 'log' ? (
           <RallyLog
             rallies={draft.rallies}
-            rotations={draft.rotations}
+            rotations={activePlan.rotations}
             roster={draft.roster}
             selectedId={selectedId}
             onSelect={setSelectedId}
@@ -454,15 +496,44 @@ export default function TaggerApp() {
           />
         ) : panel === 'lineups' ? (
           <LineupEditor
-            lineups={draft.lineups}
+            lineups={activePlan.lineups}
+            activeSet={draft.set}
+            planLabel={activePlan.label}
+            sharedSets={activePlan.sets}
             roster={draft.roster}
             officialScores={draft.officialScores}
             setsSeen={[...trackedScore.keys()]}
-            onChangeLineups={(lineups) => patch({ lineups })}
+            onChangeLineups={(lineups) => patchActivePlan({ lineups })}
             onChangeScores={(officialScores) => patch({ officialScores })}
+            onCreateSetRotation={() => {
+              setDraft((current) => {
+                const source = planForSet(current)
+                const currentIndex = Math.max(0, source.rotations.indexOf(current.rotation))
+                const next = createPlanForSet(current.rotationPlans, current.set, source.id)
+                const rotation = next.plan.rotations[currentIndex] ?? next.plan.rotations[0]
+                const relabeledRotations = new Map(
+                  source.rotations.map((sourceRotation, index) => [
+                    sourceRotation,
+                    next.plan.rotations[index] ?? sourceRotation,
+                  ]),
+                )
+                return {
+                  ...current,
+                  rotationPlans: next.plans,
+                  rotations: next.plan.rotations,
+                  lineups: next.plan.lineups,
+                  rotation,
+                  rallies: current.rallies.map((rally) =>
+                    rally.set === current.set && relabeledRotations.has(rally.rotation)
+                      ? { ...rally, rotation: relabeledRotations.get(rally.rotation)! }
+                      : rally,
+                  ),
+                }
+              })
+            }}
             onRemoveRotation={(label) => {
-              const next = removeRotation(label, draft.rotations, draft.lineups, draft.rotation)
-              patch({ rotations: next.rotations, lineups: next.lineups, rotation: next.rotation })
+              const next = removeRotation(label, activePlan.rotations, activePlan.lineups, draft.rotation)
+              patchActivePlan({ rotations: next.rotations, lineups: next.lineups }, next.rotation)
             }}
           />
         ) : (

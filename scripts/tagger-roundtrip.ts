@@ -4,7 +4,9 @@ import { autofillLineupsFrom, emptyCourtLineup, isLineupComplete } from '../src/
 import { parseSession } from '../src/lib/parse'
 import { importTaggerCsv, mergeTaggerCsv } from '../src/tagger/csvDraft'
 import { inferSingleServeOutcome } from '../src/tagger/inference'
-import { emptyDraft, type LineupDraft, type TaggedRally } from '../src/tagger/types'
+import { createPlanForSet } from '../src/tagger/rotationPlans'
+import { addRotation } from '../src/tagger/state'
+import { emptyDraft, type LineupDraft, type RotationPlan, type TaggedRally } from '../src/tagger/types'
 
 const inferredAce = inferSingleServeOutcome(true, true, [{ player: 'Sofia', skill: 'v', quality: 3 }])
 if (inferredAce?.cause !== 'aced_on_them_suckas' || inferredAce.players[0] !== 'Sofia') {
@@ -104,6 +106,52 @@ console.log('touches', JSON.stringify(session.rallies[0].touches))
 console.log('lineup1', JSON.stringify(session.lineups[0]))
 console.log('lineup2', JSON.stringify(session.lineups[1]))
 console.log('serverInference ok', session.serverInference.ok)
+
+const planA: RotationPlan = {
+  id: 'plan-a',
+  label: 'Rotation A',
+  sets: ['1', '2'],
+  rotations: lineups.map((lineup) => lineup.rotation),
+  lineups,
+}
+const split = createPlanForSet([planA], '2', planA.id)
+if (addRotation(split.plan.rotations, split.plan.lineups).added !== '8a') {
+  throw new Error('set-specific plans must preserve their suffix when adding a rotation')
+}
+split.plan.lineups[0] = {
+  ...split.plan.lineups[0],
+  front: ['Amber', 'Alec', 'Avy'],
+  back: ['Ish', 'Sofia', 'Michelle'],
+}
+const multiPlanCsv = exportTaggerCsv({
+  rallies: [
+    rallies[0],
+    { ...rallies[0], id: 'set-2-plan', set: '2', rotation: split.plan.rotations[0] },
+  ],
+  youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+  videoTitle: 'two plans',
+  lineups,
+  rotationPlans: split.plans,
+  officialScores: [],
+})
+const multiPlanSession = parseSession('2026-08-02.csv', multiPlanCsv)
+if (multiPlanSession.lineups.length !== 14) throw new Error('multiple rotation plans did not round-trip')
+const importedPlans = importTaggerCsv('2026-08-02.csv', multiPlanCsv).draft.rotationPlans
+if (importedPlans.length !== 2 || !importedPlans.some((plan) => plan.sets.includes('2'))) {
+  throw new Error('set-specific rotation plan was not restored')
+}
+const editedMultiPlan = importTaggerCsv('2026-08-02.csv', multiPlanCsv, 'saved-multi-plan').draft
+const set2Rally = editedMultiPlan.rallies.find((rally) => rally.set === '2')
+if (!set2Rally) throw new Error('set 2 rally was not imported')
+set2Rally.notes = 'edited set 2'
+const mergedMultiPlan = mergeTaggerCsv('2026-08-02.csv', multiPlanCsv, editedMultiPlan)
+if (mergedMultiPlan.changes.map((change) => change.set).join(',') !== '2') {
+  throw new Error('editing set 2 should not rewrite other set rotation plans')
+}
+const mergedMultiDraft = importTaggerCsv('2026-08-02.csv', mergedMultiPlan.csv).draft
+if (mergedMultiDraft.rotationPlans.length !== 2) {
+  throw new Error('repo merge lost a set-specific rotation plan')
+}
 
 const imported = importTaggerCsv('2026-08-02.csv', csv)
 if (imported.draft.rallies.length !== rallies.length) throw new Error('import lost rallies')

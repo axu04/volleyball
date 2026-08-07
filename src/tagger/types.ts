@@ -34,6 +34,15 @@ export interface LineupBlock {
   lineups: LineupDraft[]
 }
 
+export interface RotationPlan {
+  id: string
+  label: string
+  /** Sets using this ordered lineup. Rotation labels stay unique between plans. */
+  sets: string[]
+  rotations: string[]
+  lineups: LineupDraft[]
+}
+
 export interface OfficialScore {
   set: string
   us: number
@@ -54,6 +63,8 @@ export interface TaggerDraft {
   rallies: TaggedRally[]
   /** One entry per rotation in `rotations` — who is on court in that spot. */
   lineups: LineupDraft[]
+  /** One ordered lineup may be shared by several sets, or a set may get its own plan. */
+  rotationPlans: RotationPlan[]
   /** @deprecated kept so old drafts still load; migrated into `lineups` on read. */
   lineupBlocks?: LineupBlock[]
   officialScores: OfficialScore[]
@@ -85,7 +96,18 @@ export function emptyDraft(partial?: Partial<TaggerDraft>): TaggerDraft {
   const iso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   const rotations = partial?.rotations ?? defaultRotations()
   const lineups = partial?.lineups ?? emptyLineups(rotations)
-  const { rotations: _r, lineups: _l, ...rest } = partial ?? {}
+  const rotationPlans = partial?.rotationPlans?.length
+    ? partial.rotationPlans
+    : [
+        {
+          id: 'plan-a',
+          label: 'Rotation A',
+          sets: ['1', '2', '3'],
+          rotations,
+          lineups,
+        },
+      ]
+  const { rotations: _r, lineups: _l, rotationPlans: _p, ...rest } = partial ?? {}
   return {
     version: 1,
     date: iso,
@@ -101,5 +123,6 @@ export function emptyDraft(partial?: Partial<TaggerDraft>): TaggerDraft {
     ...rest,
     rotations,
     lineups,
+    rotationPlans,
   }
 }

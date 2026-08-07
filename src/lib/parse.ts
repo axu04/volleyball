@@ -138,8 +138,8 @@ function findColumns(header: string[]): ColumnMap | null {
   }
 }
 
-/** "1", "7", "1a" — a rotation label is a number with an optional suffix. */
-const ROTATION_ID = /^\d{1,2}[a-z]?$/i
+/** "1", "7", "1a", "1aa" — a rotation label is a number with an optional plan suffix. */
+const ROTATION_ID = /^\d{1,2}[a-z]*$/i
 
 /**
  * A line-up block lives in the spare columns under a "rotation" heading.

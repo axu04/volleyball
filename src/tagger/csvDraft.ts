@@ -1,7 +1,12 @@
 import { compareLabels, parseSession } from '../lib/parse'
 import { emptyCourtLineup, normalizeLineup } from './lineupRotation'
+import {
+  planForSet,
+  planHasLineupData,
+  rotationPlansFingerprint,
+} from './rotationPlans'
 import { advanceAfterRally } from './state'
-import type { LineupDraft, OfficialScore, TaggedRally, TaggerDraft } from './types'
+import type { OfficialScore, RotationPlan, TaggedRally, TaggerDraft } from './types'
 import { defaultRotations, emptyDraft } from './types'
 import { parseVideoTimestamp } from './youtube'
 import { exportTaggerCsv } from './exportCsv'
@@ -31,42 +36,56 @@ function setFingerprint(draft: TaggerDraft, set: string): string {
   })
 }
 
-function lineupsFingerprint(lineups: LineupDraft[]): string {
-  return JSON.stringify(lineups.map(normalizeLineup))
-}
-
 export function repoSourceForDraft(filename: string, sha: string, draft: TaggerDraft): NonNullable<TaggerDraft['repoSource']> {
   const sets = [...new Set(draft.rallies.map((rally) => rally.set))]
   return {
     filename,
     sha,
     setFingerprints: Object.fromEntries(sets.map((set) => [set, setFingerprint(draft, set)])),
-    lineupsFingerprint: lineupsFingerprint(draft.lineups),
+    lineupsFingerprint: rotationPlansFingerprint(draft.rotationPlans),
   }
 }
 
-function hasLineupData(lineups: LineupDraft[]): boolean {
-  return lineups.some((lineup) => {
-    const normalized = normalizeLineup(lineup)
-    return normalized.front.some(Boolean) || normalized.back.some(Boolean) || Boolean(normalized.sub)
-  })
+function setsFromBlockLabel(label: string): string[] {
+  const match = label.match(/\bsets?\s+(.+)$/i)
+  if (!match) return []
+  return (match[1].match(/[a-z0-9]+/gi) ?? [])
+    .filter((token) => token.toLowerCase() !== 'and')
+    .map((token) => token.toLowerCase())
 }
 
-function importedLineups(
-  rotations: string[],
-  parsed: ReturnType<typeof parseSession>,
-): LineupDraft[] {
-  const byRotation = new Map<string, LineupDraft>()
+function importedRotationPlans(parsed: ReturnType<typeof parseSession>): RotationPlan[] {
+  const groups = new Map<string, typeof parsed.lineups>()
   for (const lineup of parsed.lineups) {
-    if (byRotation.has(lineup.rotation)) continue
-    byRotation.set(lineup.rotation, {
-      rotation: lineup.rotation,
-      front: lineup.front,
-      back: lineup.back,
-      sub: lineup.sub,
-    })
+    const list = groups.get(lineup.blockLabel) ?? []
+    if (!list.some((existing) => existing.rotation === lineup.rotation)) list.push(lineup)
+    groups.set(lineup.blockLabel, list)
   }
-  return rotations.map((rotation) => normalizeLineup(byRotation.get(rotation) ?? emptyCourtLineup(rotation)))
+  const allSets = parsed.sets.map((summary) => summary.set)
+  return [...groups.entries()].map(([blockLabel, lineups], index) => {
+    const rotations = lineups.map((lineup) => lineup.rotation).sort(compareLabels)
+    const byRotation = new Map(lineups.map((lineup) => [lineup.rotation, lineup]))
+    const explicitSets = setsFromBlockLabel(blockLabel)
+    return {
+      id: `plan-${String.fromCharCode(97 + index)}`,
+      label: `Rotation ${String.fromCharCode(65 + index)}`,
+      sets: explicitSets.length ? explicitSets : index === 0 ? allSets : [],
+      rotations,
+      lineups: rotations.map((rotation) => {
+        const lineup = byRotation.get(rotation)
+        return normalizeLineup(
+          lineup
+            ? {
+                rotation,
+                front: lineup.front,
+                back: lineup.back,
+                sub: lineup.sub,
+              }
+            : emptyCourtLineup(rotation),
+        )
+      }),
+    }
+  })
 }
 
 export function importTaggerCsv(filename: string, csv: string, sha = ''): ImportedDraft {
@@ -85,25 +104,36 @@ export function importTaggerCsv(filename: string, csv: string, sha = ''): Import
     touches: rally.touches,
   }))
 
-  const rotations = [
+  const parsedRotations = [
     ...new Set([
       ...parsed.lineups.map((lineup) => lineup.rotation),
       ...rallies.map((rally) => rally.rotation).filter(Boolean),
     ]),
   ].sort(compareLabels)
-  if (!rotations.length) rotations.push(...defaultRotations())
-
-  const lineups = importedLineups(rotations, parsed)
+  if (!parsedRotations.length) parsedRotations.push(...defaultRotations())
+  let rotationPlans = importedRotationPlans(parsed)
+  if (!rotationPlans.length) {
+    rotationPlans = [
+      {
+        id: 'plan-a',
+        label: 'Rotation A',
+        sets: parsed.sets.map((summary) => summary.set),
+        rotations: parsedRotations,
+        lineups: parsedRotations.map(emptyCourtLineup),
+      },
+    ]
+  }
   const lastRally = rallies.at(-1)
   const set = lastRally?.set ?? parsed.sets.at(-1)?.set ?? '1'
+  const activePlan = planForSet({ rotationPlans, set })
   const next = lastRally
     ? advanceAfterRally({
         serving: lastRally.serving,
         won: lastRally.won,
-        rotation: lastRally.rotation || rotations[0],
-        rotations,
+        rotation: lastRally.rotation || activePlan.rotations[0],
+        rotations: activePlan.rotations,
       })
-    : { serving: true, rotation: rotations[0] }
+    : { serving: true, rotation: activePlan.rotations[0] }
 
   const officialScores: OfficialScore[] = parsed.sets.flatMap((summary) =>
     summary.officialUs === null || summary.officialThem === null
@@ -113,7 +143,10 @@ export function importTaggerCsv(filename: string, csv: string, sha = ''): Import
   const roster = [
     ...new Set([
       ...parsed.players,
-      ...lineups.flatMap((lineup) => [...lineup.front, ...lineup.back, lineup.sub]).filter(Boolean),
+      ...rotationPlans
+        .flatMap((plan) => plan.lineups)
+        .flatMap((lineup) => [...lineup.front, ...lineup.back, lineup.sub])
+        .filter(Boolean),
     ]),
   ].sort((a, b) => a.localeCompare(b))
 
@@ -124,10 +157,11 @@ export function importTaggerCsv(filename: string, csv: string, sha = ''): Import
     roster,
     set,
     rotation: next.rotation,
-    rotations,
+    rotations: activePlan.rotations,
     serving: next.serving,
     rallies,
-    lineups,
+    lineups: activePlan.lineups,
+    rotationPlans,
     officialScores,
     updatedAt: Date.now(),
   })
@@ -137,6 +171,51 @@ export function importTaggerCsv(filename: string, csv: string, sha = ''): Import
     draft,
     warnings: parsed.warnings,
   }
+}
+
+function planAppliesToSet(plan: RotationPlan, set: string, rallies: TaggedRally[]): boolean {
+  return (
+    plan.sets.includes(set) ||
+    rallies.some((rally) => rally.set === set && plan.rotations.includes(rally.rotation))
+  )
+}
+
+function plansForSets(plans: RotationPlan[], sets: string[], rallies: TaggedRally[]): RotationPlan[] {
+  return plans.flatMap((plan) => {
+    const assignedSets = sets.filter((set) => planAppliesToSet(plan, set, rallies))
+    return assignedSets.length ? [{ ...plan, sets: assignedSets }] : []
+  })
+}
+
+function combinePlans(plans: RotationPlan[]): RotationPlan[] {
+  const combined = new Map<string, RotationPlan>()
+  for (const plan of plans) {
+    const signature = JSON.stringify({
+      rotations: plan.rotations,
+      lineups: plan.lineups.map(normalizeLineup),
+    })
+    const existing = combined.get(signature)
+    if (existing) {
+      existing.sets = [...new Set([...existing.sets, ...plan.sets])].sort(compareLabels)
+    } else {
+      combined.set(signature, { ...plan, sets: [...plan.sets] })
+    }
+  }
+  return [...combined.values()]
+}
+
+function mergeRotationPlans(
+  existing: TaggerDraft,
+  current: TaggerDraft,
+  replacedSets: string[],
+  preservedSets: string[],
+): RotationPlan[] {
+  const preservedPlans = plansForSets(existing.rotationPlans, preservedSets, existing.rallies)
+  const currentPlans = plansForSets(current.rotationPlans, replacedSets, current.rallies)
+  const replacementPlans = currentPlans.some(planHasLineupData)
+    ? currentPlans
+    : plansForSets(existing.rotationPlans, replacedSets, existing.rallies)
+  return combinePlans([...preservedPlans, ...replacementPlans])
 }
 
 export interface MergedCsv {
@@ -184,15 +263,17 @@ export function mergeTaggerCsv(filename: string, existingCsv: string, current: T
     }),
   ].sort((a, b) => compareLabels(a.set, b.set))
 
-  const lineups = hasLineupData(current.lineups) ? current.lineups : existing.lineups
-  const baselineLineups = source?.lineupsFingerprint ?? lineupsFingerprint(existing.lineups)
-  const lineupsChanged = baselineLineups !== lineupsFingerprint(lineups)
+  const rotationPlans = mergeRotationPlans(existing, current, replacedSets, preservedSets)
+  const baselineLineups = source?.lineupsFingerprint ?? rotationPlansFingerprint(existing.rotationPlans)
+  const lineupsChanged = baselineLineups !== rotationPlansFingerprint(rotationPlans)
+  const activePlan = planForSet({ rotationPlans, set: current.set })
   const merged = {
     ...current,
     roster: [...new Set([...existing.roster, ...current.roster])].sort((a, b) => a.localeCompare(b)),
     rallies,
-    rotations: lineups.map((lineup) => lineup.rotation),
-    lineups,
+    rotations: activePlan.rotations,
+    lineups: activePlan.lineups,
+    rotationPlans,
     officialScores,
   }
 
@@ -202,6 +283,7 @@ export function mergeTaggerCsv(filename: string, existingCsv: string, current: T
       youtubeUrl: merged.youtubeUrl,
       videoTitle: merged.videoTitle,
       lineups: merged.lineups,
+      rotationPlans: merged.rotationPlans,
       officialScores: merged.officialScores,
     }),
     preservedSets,

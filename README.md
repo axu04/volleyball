@@ -20,7 +20,8 @@ Then open the URL Vite prints (default http://localhost:5177).
 
 1. Open `/tagger`
 2. Paste a YouTube URL, set the match date, add your roster
-3. Fill line-ups (and official scores when you know them) under **Line-ups & scores**
+3. Fill line-ups (and official scores when you know them) under **Line-ups & scores**. Sets share
+   Rotation A by default; use **New rotation for set …** when a later set uses a different order.
 4. Watch and tag: sticky Set / Rotation / Serving·Receiving, tap Won or Lost (or `Y`/`N`), pick a cause, optionally players, **Commit** (or Enter)
 5. Phase and rotation advance automatically on side-outs
 6. Save the match — either **Save this session → data/…** on the **Repo / admin** tab

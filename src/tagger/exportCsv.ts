@@ -1,4 +1,4 @@
-import type { LineupDraft, OfficialScore, TaggedRally } from './types'
+import type { LineupDraft, OfficialScore, RotationPlan, TaggedRally } from './types'
 import { normalizeLineup } from './lineupRotation'
 import { serializeTouches } from '../lib/touches'
 import { formatVideoTimestamp } from './youtube'
@@ -17,9 +17,13 @@ export function exportTaggerCsv(args: {
   youtubeUrl: string
   videoTitle: string
   lineups: LineupDraft[]
+  rotationPlans?: RotationPlan[]
   officialScores: OfficialScore[]
 }): string {
   const { rallies, youtubeUrl, videoTitle, lineups, officialScores } = args
+  const rotationPlans = args.rotationPlans?.length
+    ? args.rotationPlans
+    : [{ id: 'plan-a', label: 'Rotation A', sets: [], rotations: lineups.map((lineup) => lineup.rotation), lineups }]
 
   const header = [
     'Timestamp',
@@ -35,11 +39,7 @@ export function exportTaggerCsv(args: {
     '',
     '',
     'official scores',
-    '',
-    '',
-    '',
-    '',
-    '',
+    ...rotationPlans.flatMap(() => ['', '', '', '', '']),
   ]
 
   const scoreBySet = new Map(officialScores.map((s) => [s.set, s]))
@@ -52,16 +52,22 @@ export function exportTaggerCsv(args: {
   }
 
   type LineupPair = { marker: string; names: string[] }
-  const pairs: LineupPair[] = []
-  for (const raw of lineups) {
-    const l = normalizeLineup(raw)
-    if (!l.front.some(Boolean) && !l.back.some(Boolean) && !l.sub) continue
-    pairs.push({ marker: l.rotation, names: [...l.front] })
-    pairs.push({ marker: '', names: [...l.back, l.sub] })
-  }
+  const planPairs = rotationPlans.map((plan) => {
+    const pairs: LineupPair[] = []
+    for (const raw of plan.lineups) {
+      const lineup = normalizeLineup(raw)
+      if (!lineup.front.some(Boolean) && !lineup.back.some(Boolean) && !lineup.sub) continue
+      pairs.push({ marker: lineup.rotation, names: [...lineup.front] })
+      pairs.push({ marker: '', names: [...lineup.back, lineup.sub] })
+    }
+    const setLabel = plan.sets.length
+      ? ` for set${plan.sets.length === 1 ? '' : 's'} ${plan.sets.join(', ')}`
+      : ''
+    return { heading: `rotation${setLabel}:`, pairs }
+  })
 
   const body: string[][] = []
-  const totalRows = Math.max(rallies.length, pairs.length + 1, setsInOrder.length)
+  const totalRows = Math.max(rallies.length, ...planPairs.map((plan) => plan.pairs.length + 1), setsInOrder.length)
 
   for (let i = 0; i < totalRows; i++) {
     const r = rallies[i]
@@ -89,32 +95,36 @@ export function exportTaggerCsv(args: {
 
     const spare = ['', '', score ? `${score.us}-${score.them}` : '']
 
-    let lineupCells: string[]
-    if (i === 0) {
-      lineupCells = ['rotation:', '', '', '', '']
-    } else {
-      const pair = pairs[i - 1]
-      if (!pair) {
-        lineupCells = ['', '', '', '', '']
-      } else if (pair.marker) {
-        lineupCells = [pair.marker, pair.names[0] ?? '', pair.names[1] ?? '', pair.names[2] ?? '', '']
-      } else {
-        // Back L/M/R + sub
-        lineupCells = [
-          '',
-          pair.names[0] ?? '',
-          pair.names[1] ?? '',
-          pair.names[2] ?? '',
-          pair.names[3] ?? '',
-        ]
+    const lineupCells = planPairs.flatMap((plan) => {
+      if (i === 0) return [plan.heading, '', '', '', '']
+      const pair = plan.pairs[i - 1]
+      if (!pair) return ['', '', '', '', '']
+      if (pair.marker) {
+        return [pair.marker, pair.names[0] ?? '', pair.names[1] ?? '', pair.names[2] ?? '', '']
       }
-    }
+      return ['', pair.names[0] ?? '', pair.names[1] ?? '', pair.names[2] ?? '', pair.names[3] ?? '']
+    })
 
     body.push([...log, videos, ...spare, ...lineupCells])
   }
 
   if (body.length === 0) {
-    body.push(['', '', '', '', '', '', '', '', '', youtubeUrl, '', '', '', 'rotation:', '', '', '', ''])
+    body.push([
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      youtubeUrl,
+      '',
+      '',
+      '',
+      ...planPairs.flatMap((plan) => [plan.heading, '', '', '', '']),
+    ])
   }
 
   return [header, ...body].map((row) => row.map(csvCell).join(',')).join('\n') + '\n'
