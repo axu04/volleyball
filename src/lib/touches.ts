@@ -24,6 +24,8 @@ export const TOUCH_SKILLS: { skill: TouchSkill; label: string }[] = [
   { skill: 'b', label: 'Block' },
 ]
 
+export const TOUCH_GRADE_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e'] as const
+
 export function isOppTouch(t: Touch): t is OppMarker {
   return 'opp' in t && t.opp === true
 }

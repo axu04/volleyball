@@ -18,13 +18,12 @@ import {
   rallyInvolvesAnyPlayer,
   teamTouchSummary,
 } from '../lib/touchStats'
+import { TOUCH_GRADE_COLORS } from '../lib/touches'
 import type { Rally } from '../lib/types'
 import { Card, Empty, SortableTable, Stat, fmtPct, playerColor } from './ui'
 import type { Column } from './ui'
 
 const axis = { stroke: '#333333', fontSize: 11, tickLine: false }
-const GRADE_COLORS = ['#ef4444', '#f59e0b', '#a1a1a1', '#22c55e']
-
 function Tip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
   return (
@@ -251,16 +250,22 @@ export function Touches({
                   <XAxis dataKey="skill" {...axis} axisLine={false} />
                   <YAxis {...axis} axisLine={false} allowDecimals={false} />
                   <Tooltip content={<Tip />} />
-                  <RBar dataKey="q0" name="0" stackId="g" fill={GRADE_COLORS[0]} />
-                  <RBar dataKey="q1" name="1" stackId="g" fill={GRADE_COLORS[1]} />
-                  <RBar dataKey="q2" name="2" stackId="g" fill={GRADE_COLORS[2]} />
-                  <RBar dataKey="q3" name="3" stackId="g" fill={GRADE_COLORS[3]} radius={[4, 4, 0, 0]} />
+                  <RBar dataKey="q0" name="0" stackId="g" fill={TOUCH_GRADE_COLORS[0]} />
+                  <RBar dataKey="q1" name="1" stackId="g" fill={TOUCH_GRADE_COLORS[1]} />
+                  <RBar dataKey="q2" name="2" stackId="g" fill={TOUCH_GRADE_COLORS[2]} />
+                  <RBar
+                    dataKey="q3"
+                    name="3"
+                    stackId="g"
+                    fill={TOUCH_GRADE_COLORS[3]}
+                    radius={[4, 4, 0, 0]}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           )}
           <div className="legend" style={{ marginTop: 8 }}>
-            {GRADE_COLORS.map((c, i) => (
+            {TOUCH_GRADE_COLORS.map((c, i) => (
               <span key={i}>
                 <i className="dot" style={{ background: c }} /> {i}
               </span>
@@ -293,7 +298,7 @@ export function Touches({
                 />
                 <RBar dataKey="winPct" name="Win %" radius={[4, 4, 0, 0]}>
                   {firstOut.map((d) => (
-                    <Cell key={d.quality} fill={GRADE_COLORS[d.quality]} fillOpacity={d.n ? 1 : 0.25} />
+                    <Cell key={d.quality} fill={TOUCH_GRADE_COLORS[d.quality]} fillOpacity={d.n ? 1 : 0.25} />
                   ))}
                 </RBar>
               </BarChart>

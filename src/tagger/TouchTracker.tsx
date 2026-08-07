@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import {
+  TOUCH_GRADE_COLORS,
   TOUCH_SKILLS,
   formatTouchLabel,
   isOppTouch,
@@ -210,6 +211,11 @@ export function TouchTracker({
             <span
               key={`${i}-${formatTouchLabel(t)}`}
               className={`touch-pill ${isOppTouch(t) ? 'touch-pill-opp' : ''}`}
+              style={
+                isOppTouch(t)
+                  ? undefined
+                  : { borderColor: TOUCH_GRADE_COLORS[t.quality], color: TOUCH_GRADE_COLORS[t.quality] }
+              }
             >
               {formatTouchLabel(t)}
             </span>
@@ -292,6 +298,7 @@ export function TouchTracker({
                         key={q}
                         type="button"
                         className={`chip touch-grade ${skillBuf === skill ? 'on' : ''}`}
+                        style={{ borderColor: TOUCH_GRADE_COLORS[q], color: TOUCH_GRADE_COLORS[q] }}
                         onClick={() => onRecord(skill, q)}
                         tabIndex={-1}
                       >
