@@ -13,8 +13,21 @@ const inferredError = inferSingleServeOutcome(true, false, [{ player: 'Sofia', s
 if (inferredError?.cause !== 'serve_err' || inferredError.players[0] !== 'Sofia') {
   throw new Error('single-touch losing serve should infer a serve error')
 }
-if (inferSingleServeOutcome(true, true, [{ player: 'Sofia', skill: 'v', quality: 3 }, { opp: true }])) {
-  throw new Error('returned serve must not infer an ace')
+const inferredAceWithOpp = inferSingleServeOutcome(true, true, [
+  { player: 'Sofia', skill: 'v', quality: 3 },
+  { opp: true },
+])
+if (inferredAceWithOpp?.cause !== 'aced_on_them_suckas') {
+  throw new Error('serve followed only by an opponent marker should still infer an ace')
+}
+if (
+  inferSingleServeOutcome(true, true, [
+    { player: 'Sofia', skill: 'v', quality: 3 },
+    { opp: true },
+    { player: 'Amber', skill: 'r', quality: 2 },
+  ])
+) {
+  throw new Error('a later player touch must disable serve-only inference')
 }
 
 const rallies: TaggedRally[] = [
