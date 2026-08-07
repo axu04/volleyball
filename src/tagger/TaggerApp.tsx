@@ -6,6 +6,7 @@ import { LineupEditor } from './LineupEditor'
 import { RallyForm } from './RallyForm'
 import { RallyLog } from './RallyLog'
 import { RepoAdmin } from './RepoAdmin'
+import { importTaggerCsv, repoSourceForDraft } from './csvDraft'
 import { advanceAfterRally, addRotation, clearDraft, loadDraft, nextRotation, removeRotation, saveDraft } from './state'
 import type { TaggedRally, TaggerDraft } from './types'
 import { YouTubePlayer, type YouTubePlayerHandle } from './YouTubePlayer'
@@ -184,6 +185,18 @@ export default function TaggerApp() {
     setNotes('')
     resetTouchState()
     setSelectedId(null)
+  }
+
+  const importCsv = (importFilename: string, contents: string, sha: string) => {
+    const imported = importTaggerCsv(importFilename, contents, sha)
+    setDraft(imported.draft)
+    setWon(null)
+    setCause('')
+    setPlayers([])
+    setNotes('')
+    resetTouchState()
+    setSelectedId(null)
+    return { rallyCount: imported.draft.rallies.length, warnings: imported.warnings }
   }
 
   const videoOk = !!extractVideoId(draft.youtubeUrl)
@@ -449,7 +462,18 @@ export default function TaggerApp() {
             }}
           />
         ) : (
-          <RepoAdmin filename={filename} csv={csv} rallyCount={draft.rallies.length} />
+          <RepoAdmin
+            filename={filename}
+            csv={csv}
+            draft={draft}
+            onImport={importCsv}
+            onSaved={(savedFilename, sha) =>
+              setDraft((current) => ({
+                ...current,
+                repoSource: repoSourceForDraft(savedFilename, sha, current),
+              }))
+            }
+          />
         )}
       </section>
     </div>
