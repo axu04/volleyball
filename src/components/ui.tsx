@@ -1,22 +1,22 @@
 import { useMemo, useState, type ReactNode } from 'react'
 
-const PALETTE = [
-  '#ededed',
-  '#22c55e',
-  '#a1a1a1',
-  '#f59e0b',
-  '#ef4444',
-  '#d4d4d4',
-  '#86efac',
-  '#fbbf24',
-  '#737373',
-  '#fca5a5',
-]
+const PLAYER_COLORS: Record<string, string> = {
+  alec: '#38bdf8',
+  amber: '#f97316',
+  avy: '#a78bfa',
+  ish: '#22c55e',
+  jess: '#f472b6',
+  michelle: '#2dd4bf',
+  sofia: '#eab308',
+}
 
 export function playerColor(name: string): string {
+  const known = PLAYER_COLORS[name.trim().toLowerCase()]
+  if (known) return known
+
   let hash = 0
   for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0
-  return PALETTE[hash % PALETTE.length]
+  return `hsl(${hash % 360} 72% 62%)`
 }
 
 export const fmtPct = (v: number, digits = 0) => `${v.toFixed(digits)}%`
