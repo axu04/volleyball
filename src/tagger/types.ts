@@ -57,6 +57,13 @@ export interface TaggerDraft {
   /** @deprecated kept so old drafts still load; migrated into `lineups` on read. */
   lineupBlocks?: LineupBlock[]
   officialScores: OfficialScore[]
+  /** Repo blob loaded or last saved, used to reject stale overwrites. */
+  repoSource?: {
+    filename: string
+    sha: string
+    setFingerprints: Record<string, string>
+    lineupsFingerprint: string
+  }
   updatedAt: number
 }
 

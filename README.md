@@ -36,8 +36,21 @@ through a small serverless function (`api/data.ts`) that uses the GitHub Content
 there you can:
 
 - **Save this session** — commit the current tagging session as `data/<date>.csv` (overwrites
-  if it already exists).
+  the same set(s) if they already exist, while preserving other sets in that date's file).
+- **Open** — load an existing repo CSV into the tagger so its rallies can be edited and saved back.
 - **List / delete** the CSVs already in `data/`.
+
+Files are grouped by match date (`data/YYYY-MM-DD.csv`). You can tag and save one set at a time:
+when that date already exists, a new set label is appended while the other saved sets are kept.
+Replacing a set that already exists requires a confirmation showing its saved-versus-draft rally
+counts. Use **Open** first when you want to edit or continue the existing set rather than replace
+it from a separate draft. After a save or import, unchanged sets are recognized and preserved
+rather than rewritten on the next per-set save.
+
+Before an overwrite, the panel shows the saved and draft rally counts for every affected set.
+Writes use the repo blob version that was just read and are rejected if the file changes before
+the commit completes. Imported drafts also remember the version they came from, so a stale edit
+cannot overwrite a newer repo copy. Every successful save remains recoverable in Git history.
 
 Every save and delete is an ordinary **git commit**, so nothing is ever truly lost — a file
 deleted here still lives in history and can be restored with `git revert <commit>` or from the

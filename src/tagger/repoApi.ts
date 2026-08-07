@@ -32,13 +32,25 @@ export async function listRepoCsvs(): Promise<RepoListResult> {
   return (await res.json()) as RepoListResult
 }
 
-export async function saveRepoCsv(args: { filename: string; csv: string; secret: string }): Promise<void> {
+export async function readRepoCsv(filename: string): Promise<{ filename: string; csv: string; sha: string }> {
+  const res = await fetch(`/api/data?filename=${encodeURIComponent(filename)}`, { method: 'GET' })
+  if (!res.ok) throw new Error(await parseError(res))
+  return (await res.json()) as { filename: string; csv: string; sha: string }
+}
+
+export async function saveRepoCsv(args: {
+  filename: string
+  csv: string
+  secret: string
+  expectedSha?: string
+}): Promise<{ sha: string; commit: string; created: boolean }> {
   const res = await fetch('/api/data', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(args),
   })
   if (!res.ok) throw new Error(await parseError(res))
+  return (await res.json()) as { sha: string; commit: string; created: boolean }
 }
 
 export async function deleteRepoCsv(args: { filename: string; secret: string }): Promise<void> {

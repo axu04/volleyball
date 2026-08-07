@@ -2,8 +2,9 @@
 import { exportTaggerCsv } from '../src/tagger/exportCsv'
 import { autofillLineupsFrom, emptyCourtLineup, isLineupComplete } from '../src/tagger/lineupRotation'
 import { parseSession } from '../src/lib/parse'
+import { importTaggerCsv, mergeTaggerCsv } from '../src/tagger/csvDraft'
 import { inferSingleServeOutcome } from '../src/tagger/inference'
-import type { LineupDraft, TaggedRally } from '../src/tagger/types'
+import { emptyDraft, type LineupDraft, type TaggedRally } from '../src/tagger/types'
 
 const inferredAce = inferSingleServeOutcome(true, true, [{ player: 'Sofia', skill: 'v', quality: 3 }])
 if (inferredAce?.cause !== 'aced_on_them_suckas' || inferredAce.players[0] !== 'Sofia') {
@@ -103,3 +104,47 @@ console.log('touches', JSON.stringify(session.rallies[0].touches))
 console.log('lineup1', JSON.stringify(session.lineups[0]))
 console.log('lineup2', JSON.stringify(session.lineups[1]))
 console.log('serverInference ok', session.serverInference.ok)
+
+const imported = importTaggerCsv('2026-08-02.csv', csv)
+if (imported.draft.rallies.length !== rallies.length) throw new Error('import lost rallies')
+if (imported.draft.rallies[0].videoSeconds !== rallies[0].videoSeconds) throw new Error('import lost timestamp')
+if (imported.draft.rallies[0].touches.length !== rallies[0].touches.length) throw new Error('import lost touches')
+if (imported.draft.officialScores[0]?.us !== 25) throw new Error('import lost official score')
+
+const continued = importTaggerCsv('2026-08-02.csv', csv, 'saved-sha').draft
+continued.rallies.push({
+  ...rallies[0],
+  id: 'continued-set-2',
+  set: '2',
+  youtubeUrl: 'https://www.youtube.com/watch?v=abcdefghijk',
+})
+const continuedMerge = mergeTaggerCsv('2026-08-02.csv', csv, continued)
+if (continuedMerge.changes.map((change) => change.set).join(',') !== '2') {
+  throw new Error('continued tagging should only append the changed set')
+}
+
+const set2 = emptyDraft({
+  date: '2026-08-02',
+  set: '2',
+  rallies: [
+    {
+      ...rallies[0],
+      id: 'set-2',
+      set: '2',
+      youtubeUrl: 'https://www.youtube.com/watch?v=abcdefghijk',
+    },
+  ],
+  officialScores: [{ set: '2', us: 25, them: 20 }],
+  lineups,
+  rotations: lineups.map((lineup) => lineup.rotation),
+})
+const merged = mergeTaggerCsv('2026-08-02.csv', csv, set2)
+const mergedSession = parseSession('2026-08-02.csv', merged.csv)
+if (mergedSession.sets.length !== 2) throw new Error('per-set merge did not preserve the existing set')
+if (mergedSession.sets.find((set) => set.set === '1')?.rallies.length !== rallies.length) {
+  throw new Error('per-set merge changed the existing set')
+}
+if (mergedSession.sets.find((set) => set.set === '2')?.rallies.length !== 1) {
+  throw new Error('per-set merge did not add the current set')
+}
+console.log('import and per-set merge ok')
