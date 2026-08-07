@@ -182,6 +182,25 @@ export interface RotationStat {
   kills: number
 }
 
+export function summarizeRotation(rotation: string, rallies: Rally[]): RotationStat {
+  const c = coreStats(rallies)
+  return {
+    rotation,
+    rallies: c.rallies,
+    won: c.won,
+    lost: c.lost,
+    winPct: c.winPct,
+    net: c.diff,
+    sideoutPct: c.sideoutPct,
+    serveRallies: c.serveRallies,
+    servePointPct: c.servePointPct,
+    errors: c.errors,
+    errorRate: c.errorRate,
+    aces: c.aces,
+    kills: c.kills,
+  }
+}
+
 export function rotationStats(rallies: Rally[]): RotationStat[] {
   const out: RotationStat[] = []
   // Whatever rotations the sheet actually used: six, seven, or two labelled sets of them.
@@ -189,22 +208,7 @@ export function rotationStats(rallies: Rally[]): RotationStat[] {
   for (const rot of found) {
     const rs = rallies.filter((r) => r.rotation === rot)
     if (!rs.length) continue
-    const c = coreStats(rs)
-    out.push({
-      rotation: rot,
-      rallies: c.rallies,
-      won: c.won,
-      lost: c.lost,
-      winPct: c.winPct,
-      net: c.diff,
-      sideoutPct: c.sideoutPct,
-      serveRallies: c.serveRallies,
-      servePointPct: c.servePointPct,
-      errors: c.errors,
-      errorRate: c.errorRate,
-      aces: c.aces,
-      kills: c.kills,
-    })
+    out.push(summarizeRotation(rot, rs))
   }
   return out
 }
