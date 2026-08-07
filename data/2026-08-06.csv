@@ -1,7 +1,7 @@
 Timestamp,Set,Serving?,Won?,Cause,Player,Rotation,Notes,Touches,Videos,,,official scores,,,,,
 0:33,1,Serving,No,serve_err,Sofia,1,,,https://www.youtube.com/watch?v=0LiMlkdcY1k,,,25-17,rotation:,,,,
 0:45,1,Receiving,Yes,opp_err,,1,,,https://www.youtube.com/watch?v=0LiMlkdcY1k,,,25-22,1,Avy,Amber,Alec,
-1:12,1,Serving,Yes,our_point,Jess,2,,Alec:v2|o|Ish:r3|Avy:s3|Jess:a3,https://www.youtube.com/watch?v=0LiMlkdcY1k,,,25-10,,Michelle,Ish,Sofia,Jess
+1:12,1,Serving,Yes,our_point,Jess,2,,Alec:v2|o|Ish:r3|Avy:s3|Jess:a3,https://www.youtube.com/watch?v=0LiMlkdcY1k,,,,,Michelle,Ish,Sofia,Jess
 1:39,1,Serving,No,handling_bump,Sofia,2,,Alec:v2|o|Sofia:r3|Avy:s2|Amber:a2|o|Sofia:r0,https://www.youtube.com/watch?v=0LiMlkdcY1k,,,,2,Jess,Avy,Amber,
 2:00,1,Receiving,Yes,our_point,Jess,2,,Sofia:r3|Jess:a2|o|Avy:r2|Jess:a3,https://www.youtube.com/watch?v=0LiMlkdcY1k,,,,,Ish,Sofia,Alec,Michelle
 2:29,1,Serving,No,coverage,Sofia,3,,Amber:v2|o|Alec:r3|Jess:s2|Avy:r2|o|Sofia:r0,https://www.youtube.com/watch?v=0LiMlkdcY1k,,,,3,Michelle,Jess,Avy,
@@ -41,3 +41,4 @@ Timestamp,Set,Serving?,Won?,Cause,Player,Rotation,Notes,Touches,Videos,,,officia
 12:31,1,Serving,Yes,aced_on_them_suckas,Amber,3,,Amber:v2,https://www.youtube.com/watch?v=0LiMlkdcY1k,,,,,,,,
 12:45,1,Serving,Yes,aced_on_them_suckas,Amber,3,,Amber:v2,https://www.youtube.com/watch?v=0LiMlkdcY1k,,,,,,,,
 13:01,1,Serving,Yes,aced_on_them_suckas,Amber,3,,Amber:v2,https://www.youtube.com/watch?v=0LiMlkdcY1k,,,,,,,,
+1:04,2,Receiving,Yes,opp_err,,1,,,https://youtu.be/85eWnft5VUo,,,,,,,,
