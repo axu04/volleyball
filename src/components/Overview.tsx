@@ -180,17 +180,12 @@ export function Overview({
   const st = streaks(rallies)
   const groups = errorGroups(rallies)
 
-  // A named player gets last-touch credit. No-player opp_err is reserved for a bad opponent serve.
+  // Split no-player bad serves from ordinary opponent errors; neither implies a forced win.
   const wins = [
-    { key: 'opp_err_credited', label: 'Opponent error (last touch)', color: '#a1a1a1', count: c.forced },
+    { key: 'opp_serve_error', label: 'Opponent serve error', color: '#525252', count: c.badServeErrors },
     { key: 'aced_on_them_suckas', label: 'Ace', color: causeMeta('aced_on_them_suckas').color, count: c.aces },
-    { key: 'our_point', label: 'Kill / earned point', color: causeMeta('our_point').color, count: c.kills },
-    {
-      key: 'opp_err_bad_serve',
-      label: 'Unforced opponent error (bad serve)',
-      color: '#525252',
-      count: c.badServeErrors,
-    },
+    { key: 'our_point', label: 'Kill / earned', color: causeMeta('our_point').color, count: c.kills },
+    { key: 'opp_err', label: 'Opponent error', color: '#a1a1a1', count: c.forced },
   ]
     .filter((w) => w.count > 0)
     .map((w) => ({ ...w, share: c.won > 0 ? (w.count / c.won) * 100 : 0 }))
