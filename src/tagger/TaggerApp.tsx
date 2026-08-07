@@ -6,6 +6,7 @@ import { LineupEditor } from './LineupEditor'
 import { RallyForm } from './RallyForm'
 import { RallyLog } from './RallyLog'
 import { RepoAdmin } from './RepoAdmin'
+import { inferSingleServeOutcome } from './inference'
 import { advanceAfterRally, addRotation, clearDraft, loadDraft, nextRotation, removeRotation, saveDraft } from './state'
 import type { TaggedRally, TaggerDraft } from './types'
 import { YouTubePlayer, type YouTubePlayerHandle } from './YouTubePlayer'
@@ -45,7 +46,10 @@ export default function TaggerApp() {
 
   const patch = useCallback((p: Partial<TaggerDraft>) => setDraft((d) => ({ ...d, ...p })), [])
 
-  const canCommit = won !== null && !!cause && !!draft.rotation && !!draft.set
+  const inferredServe = inferSingleServeOutcome(draft.serving, won, touches)
+  const effectiveCause = inferredServe?.cause ?? cause
+  const effectivePlayers = inferredServe?.players ?? players
+  const canCommit = won !== null && !!effectiveCause && !!draft.rotation && !!draft.set
 
   const trackedScore = useMemo(() => {
     const bySet = new Map<string, { us: number; them: number }>()
@@ -75,8 +79,8 @@ export default function TaggerApp() {
       set: draft.set,
       serving: draft.serving,
       won,
-      cause,
-      players: [...players],
+      cause: effectiveCause,
+      players: [...effectivePlayers],
       rotation: draft.rotation,
       notes: notes.trim(),
       touches: [...touches],
@@ -103,8 +107,8 @@ export default function TaggerApp() {
   }, [
     canCommit,
     won,
-    cause,
-    players,
+    effectiveCause,
+    effectivePlayers,
     notes,
     touches,
     draft.set,
@@ -357,8 +361,8 @@ export default function TaggerApp() {
             rotations={draft.rotations}
             serving={draft.serving}
             won={won}
-            cause={cause}
-            players={players}
+            cause={effectiveCause}
+            players={effectivePlayers}
             notes={notes}
             roster={draft.roster}
             canCommit={canCommit}

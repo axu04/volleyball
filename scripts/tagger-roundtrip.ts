@@ -2,7 +2,20 @@
 import { exportTaggerCsv } from '../src/tagger/exportCsv'
 import { autofillLineupsFrom, emptyCourtLineup, isLineupComplete } from '../src/tagger/lineupRotation'
 import { parseSession } from '../src/lib/parse'
+import { inferSingleServeOutcome } from '../src/tagger/inference'
 import type { LineupDraft, TaggedRally } from '../src/tagger/types'
+
+const inferredAce = inferSingleServeOutcome(true, true, [{ player: 'Sofia', skill: 'v', quality: 3 }])
+if (inferredAce?.cause !== 'aced_on_them_suckas' || inferredAce.players[0] !== 'Sofia') {
+  throw new Error('single-touch winning serve should infer an ace')
+}
+const inferredError = inferSingleServeOutcome(true, false, [{ player: 'Sofia', skill: 'v', quality: 0 }])
+if (inferredError?.cause !== 'serve_err' || inferredError.players[0] !== 'Sofia') {
+  throw new Error('single-touch losing serve should infer a serve error')
+}
+if (inferSingleServeOutcome(true, true, [{ player: 'Sofia', skill: 'v', quality: 3 }, { opp: true }])) {
+  throw new Error('returned serve must not infer an ace')
+}
 
 const rallies: TaggedRally[] = [
   {
