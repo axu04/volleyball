@@ -172,6 +172,14 @@ export default function TaggerApp() {
     [pendingTouchPlayer],
   )
 
+  const onTouchUpdate = useCallback((index: number, touch: Touch) => {
+    setTouches((prev) => prev.map((existing, i) => (i === index ? touch : existing)))
+  }, [])
+
+  const onTouchRemove = useCallback((index: number) => {
+    setTouches((prev) => prev.filter((_, i) => i !== index))
+  }, [])
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName
@@ -452,6 +460,8 @@ export default function TaggerApp() {
             }}
             onTouchSelectPlayer={setPendingTouchPlayer}
             onTouchRecord={onTouchRecord}
+            onTouchUpdate={onTouchUpdate}
+            onTouchRemove={onTouchRemove}
             onTouchOpp={() => setTouches((prev) => [...prev, { opp: true }])}
             onTouchUndo={() => setTouches((prev) => prev.slice(0, -1))}
             onTouchClear={() => {

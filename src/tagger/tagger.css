@@ -277,12 +277,27 @@ a.chip {
 .touch-pill {
   display: inline-flex;
   align-items: center;
+  appearance: none;
+  background: transparent;
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-sm);
   padding: 3px 8px;
+  font-family: inherit;
   font-size: 12px;
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.touch-pill:hover,
+.touch-pill-editing {
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 0 1px currentColor;
+}
+
+.touch-edit-hint {
+  align-self: center;
+  font-size: 11px;
 }
 
 .touch-pill-opp {

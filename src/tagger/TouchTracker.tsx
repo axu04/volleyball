@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import {
   TOUCH_GRADE_COLORS,
   TOUCH_SKILLS,
@@ -20,6 +20,8 @@ export function TouchTracker({
   onStop,
   onSelectPlayer,
   onRecord,
+  onUpdate,
+  onRemove,
   onOpp,
   onUndo,
   onClear,
@@ -32,6 +34,8 @@ export function TouchTracker({
   onStop: () => void
   onSelectPlayer: (name: string | null) => void
   onRecord: (skill: TouchSkill, quality: 0 | 1 | 2 | 3) => void
+  onUpdate: (index: number, touch: Touch) => void
+  onRemove: (index: number) => void
   onOpp: () => void
   onUndo: () => void
   onClear: () => void
@@ -39,6 +43,7 @@ export function TouchTracker({
   const [skillBuf, setSkillBuf] = useState<TouchSkill | null>(null)
   const [query, setQuery] = useState('')
   const [highlight, setHighlight] = useState(0)
+  const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const matches = useMemo(() => {
@@ -59,12 +64,59 @@ export function TouchTracker({
     }
   }, [active, pendingPlayer, touches.length])
 
-  const markOpp = () => {
+  useEffect(() => {
+    if (!active) setEditingIndex(null)
+    else if (editingIndex !== null && editingIndex >= touches.length) setEditingIndex(null)
+  }, [active, editingIndex, touches.length])
+
+  const cancelEditing = useCallback(() => {
+    setEditingIndex(null)
+    setSkillBuf(null)
+    setQuery('')
+    onSelectPlayer(null)
+  }, [onSelectPlayer])
+
+  const editTouch = (index: number) => {
+    if (editingIndex === index) {
+      cancelEditing()
+      return
+    }
+    const touch = touches[index]
+    onStart()
+    setEditingIndex(index)
+    setQuery('')
+    if (isOppTouch(touch)) {
+      setSkillBuf(null)
+      onSelectPlayer(null)
+    } else {
+      setSkillBuf(touch.skill)
+      onSelectPlayer(touch.player)
+    }
+  }
+
+  const recordTouch = useCallback(
+    (skill: TouchSkill, quality: 0 | 1 | 2 | 3) => {
+      if (!pendingPlayer) return
+      if (editingIndex === null) {
+        onRecord(skill, quality)
+      } else {
+        onUpdate(editingIndex, { player: pendingPlayer, skill, quality })
+        cancelEditing()
+      }
+    },
+    [pendingPlayer, editingIndex, onRecord, onUpdate, cancelEditing],
+  )
+
+  const markOpp = useCallback(() => {
     setSkillBuf(null)
     setQuery('')
     if (pendingPlayer) onSelectPlayer(null)
-    onOpp()
-  }
+    if (editingIndex === null) onOpp()
+    else {
+      onUpdate(editingIndex, { opp: true })
+      setEditingIndex(null)
+    }
+  }, [pendingPlayer, editingIndex, onSelectPlayer, onOpp, onUpdate])
 
   useEffect(() => {
     if (!active) return
@@ -80,19 +132,13 @@ export function TouchTracker({
           if (query.trim().length > 0) return
           e.preventDefault()
           e.stopPropagation()
-          setSkillBuf(null)
-          setQuery('')
-          if (pendingPlayer) onSelectPlayer(null)
-          onOpp()
+          markOpp()
           return
         }
         if (!inField) {
           e.preventDefault()
           e.stopPropagation()
-          setSkillBuf(null)
-          setQuery('')
-          if (pendingPlayer) onSelectPlayer(null)
-          onOpp()
+          markOpp()
           return
         }
       }
@@ -103,8 +149,12 @@ export function TouchTracker({
       if (e.key === 'Escape') {
         e.preventDefault()
         e.stopPropagation()
-        setSkillBuf(null)
-        onSelectPlayer(null)
+        if (editingIndex === null) {
+          setSkillBuf(null)
+          onSelectPlayer(null)
+        } else {
+          cancelEditing()
+        }
         return
       }
 
@@ -129,7 +179,7 @@ export function TouchTracker({
       if (skillBuf && k >= '0' && k <= '3') {
         e.preventDefault()
         e.stopPropagation()
-        onRecord(skillBuf, +k as 0 | 1 | 2 | 3)
+        recordTouch(skillBuf, +k as 0 | 1 | 2 | 3)
         setSkillBuf(null)
         return
       }
@@ -143,7 +193,7 @@ export function TouchTracker({
 
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
-  }, [active, pendingPlayer, skillBuf, query, onRecord, onSelectPlayer, onOpp])
+  }, [active, pendingPlayer, skillBuf, query, editingIndex, recordTouch, markOpp, cancelEditing, onSelectPlayer])
 
   const pickPlayer = (name: string) => {
     setQuery('')
@@ -191,13 +241,36 @@ export function TouchTracker({
               <button type="button" className="chip" onClick={markOpp} title="Opponent ball (o)">
                 o
               </button>
-              <button type="button" className="chip" onClick={onUndo} disabled={!touches.length}>
+              <button
+                type="button"
+                className="chip"
+                onClick={() => {
+                  cancelEditing()
+                  onUndo()
+                }}
+                disabled={!touches.length}
+              >
                 Undo
               </button>
-              <button type="button" className="chip" onClick={onClear} disabled={!touches.length}>
+              <button
+                type="button"
+                className="chip"
+                onClick={() => {
+                  cancelEditing()
+                  onClear()
+                }}
+                disabled={!touches.length}
+              >
                 Clear
               </button>
-              <button type="button" className="chip" onClick={onStop}>
+              <button
+                type="button"
+                className="chip"
+                onClick={() => {
+                  cancelEditing()
+                  onStop()
+                }}
+              >
                 Done
               </button>
             </>
@@ -208,18 +281,25 @@ export function TouchTracker({
       {touches.length > 0 && (
         <div className="touch-seq">
           {touches.map((t, i) => (
-            <span
+            <button
+              type="button"
               key={`${i}-${formatTouchLabel(t)}`}
-              className={`touch-pill ${isOppTouch(t) ? 'touch-pill-opp' : ''}`}
+              className={`touch-pill ${isOppTouch(t) ? 'touch-pill-opp' : ''} ${
+                editingIndex === i ? 'touch-pill-editing' : ''
+              }`}
               style={
                 isOppTouch(t)
                   ? undefined
                   : { borderColor: TOUCH_GRADE_COLORS[t.quality], color: TOUCH_GRADE_COLORS[t.quality] }
               }
+              onClick={() => editTouch(i)}
+              title={`Edit ${formatTouchLabel(t)}`}
+              aria-pressed={editingIndex === i}
             >
               {formatTouchLabel(t)}
-            </span>
+            </button>
           ))}
+          <span className="faint touch-edit-hint">Click a touch to edit.</span>
         </div>
       )}
 
@@ -228,7 +308,8 @@ export function TouchTracker({
           <div className="filter-label" style={{ margin: '10px 0 6px' }}>
             {pendingPlayer ? (
               <>
-                Grade <span className="touch-pending">{pendingPlayer}</span>
+                {editingIndex === null ? 'Grade ' : 'Edit '}
+                <span className="touch-pending">{pendingPlayer}</span>
                 <span className="faint" style={{ marginLeft: 8, textTransform: 'none', letterSpacing: 0 }}>
                   {skillBuf ? (
                     <>
@@ -241,10 +322,29 @@ export function TouchTracker({
               </>
             ) : (
               <>
-                Pick a player — type + Enter · <code>o</code> = opponent ball
+                {editingIndex === null ? 'Pick a player' : 'Edit touch — pick a player or use o'} — type + Enter ·{' '}
+                <code>o</code> = opponent ball
               </>
             )}
           </div>
+
+          {editingIndex !== null && (
+            <div className="filter-group" style={{ marginBottom: 8 }}>
+              <button type="button" className="chip" onClick={cancelEditing}>
+                Cancel edit
+              </button>
+              <button
+                type="button"
+                className="chip"
+                onClick={() => {
+                  onRemove(editingIndex)
+                  cancelEditing()
+                }}
+              >
+                Delete touch
+              </button>
+            </div>
+          )}
 
           {!pendingPlayer && (
             <div className="touch-player-pick">
@@ -299,7 +399,7 @@ export function TouchTracker({
                         type="button"
                         className={`chip touch-grade ${skillBuf === skill ? 'on' : ''}`}
                         style={{ borderColor: TOUCH_GRADE_COLORS[q], color: TOUCH_GRADE_COLORS[q] }}
-                        onClick={() => onRecord(skill, q)}
+                        onClick={() => recordTouch(skill, q)}
                         tabIndex={-1}
                       >
                         {skill}

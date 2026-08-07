@@ -27,6 +27,8 @@ export function RallyForm({
   onTouchStop,
   onTouchSelectPlayer,
   onTouchRecord,
+  onTouchUpdate,
+  onTouchRemove,
   onTouchOpp,
   onTouchUndo,
   onTouchClear,
@@ -61,6 +63,8 @@ export function RallyForm({
   onTouchStop: () => void
   onTouchSelectPlayer: (name: string | null) => void
   onTouchRecord: (skill: TouchSkill, quality: 0 | 1 | 2 | 3) => void
+  onTouchUpdate: (index: number, touch: Touch) => void
+  onTouchRemove: (index: number) => void
   onTouchOpp: () => void
   onTouchUndo: () => void
   onTouchClear: () => void
@@ -140,6 +144,8 @@ export function RallyForm({
         onStop={onTouchStop}
         onSelectPlayer={onTouchSelectPlayer}
         onRecord={onTouchRecord}
+        onUpdate={onTouchUpdate}
+        onRemove={onTouchRemove}
         onOpp={onTouchOpp}
         onUndo={onTouchUndo}
         onClear={onTouchClear}
