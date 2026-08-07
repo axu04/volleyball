@@ -3,7 +3,7 @@
  * game CSVs under `data/` straight in the GitHub repo — so every save and delete is a
  * normal git commit and nothing is ever lost (see README → "Saving to the repo").
  *
- * GET    → list `data/*.csv` (name, size, sha). Public: the data is already public.
+ * GET    → list `data/*.csv`, or read one with `?filename=...`. Public: the data is already public.
  * POST   → create/update `data/<file>` from a CSV body. Requires the shared secret.
  * DELETE → remove `data/<file>`.                        Requires the shared secret.
  *
@@ -76,6 +76,8 @@ interface GitHubContentItem {
   sha?: string
   size?: number
   type?: string
+  content?: string
+  encoding?: string
 }
 
 async function githubJson(url: string, token: string): Promise<{ status: number; body: unknown }> {
@@ -117,6 +119,30 @@ async function listCsv(cfg: RepoConfig): Promise<RepoFile[]> {
     .sort((a, b) => a.name.localeCompare(b.name))
 }
 
+async function readCsv(cfg: RepoConfig, filename: string): Promise<{ filename: string; csv: string; sha: string }> {
+  const path = `${DATA_DIR}/${filename}`
+  const encoded = encodeURIComponent(path).replace(/%2F/g, '/')
+  const url = `${GITHUB_API}/repos/${cfg.owner}/${cfg.repo}/contents/${encoded}?ref=${encodeURIComponent(cfg.branch)}`
+  const { status, body } = await githubJson(url, cfg.token)
+  if (status === 404) {
+    const err = new Error(`${filename} does not exist.`)
+    ;(err as { statusCode?: number }).statusCode = 404
+    throw err
+  }
+  if (status < 200 || status >= 300) {
+    throw new Error(ghErrorMessage(body, `GitHub responded ${status} while reading ${filename}.`))
+  }
+  const item = body as GitHubContentItem
+  if (item.encoding !== 'base64' || typeof item.content !== 'string') {
+    throw new Error(`GitHub did not return readable CSV content for ${filename}.`)
+  }
+  return {
+    filename,
+    csv: Buffer.from(item.content.replace(/\s/g, ''), 'base64').toString('utf8'),
+    sha: item.sha ?? '',
+  }
+}
+
 /** Current blob sha for a path, or null when the file does not exist yet. */
 async function getSha(cfg: RepoConfig, path: string): Promise<string | null> {
   const encoded = encodeURIComponent(path).replace(/%2F/g, '/')
@@ -140,9 +166,26 @@ interface WriteResult {
   created: boolean
 }
 
-async function saveCsv(cfg: RepoConfig, filename: string, csv: string): Promise<WriteResult> {
+function conflict(message: string): Error {
+  const err = new Error(message)
+  ;(err as { statusCode?: number }).statusCode = 409
+  return err
+}
+
+async function saveCsv(
+  cfg: RepoConfig,
+  filename: string,
+  csv: string,
+  expectedSha: string | undefined,
+): Promise<WriteResult> {
   const path = `${DATA_DIR}/${filename}`
   const existingSha = await getSha(cfg, path)
+  if (existingSha && expectedSha !== existingSha) {
+    throw conflict(`${filename} changed in the repo. Refresh or reopen it before saving; no data was overwritten.`)
+  }
+  if (!existingSha && expectedSha) {
+    throw conflict(`${filename} was removed or renamed. Refresh before saving; no data was overwritten.`)
+  }
   const encoded = encodeURIComponent(path).replace(/%2F/g, '/')
   const url = `${GITHUB_API}/repos/${cfg.owner}/${cfg.repo}/contents/${encoded}`
   const payload: Record<string, unknown> = {
@@ -220,6 +263,16 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
 
   try {
     if (req.method === 'GET') {
+      const requested = firstQuery(req.query.filename)
+      if (requested) {
+        const filename = sanitizeFilename(requested)
+        if (!filename) {
+          res.status(400).json({ error: 'Invalid filename. Use a plain name ending in .csv.' })
+          return
+        }
+        res.status(200).json(await readCsv(cfg, filename))
+        return
+      }
       const files = await listCsv(cfg)
       res.status(200).json({ files, repo: `${cfg.owner}/${cfg.repo}`, branch: cfg.branch })
       return
@@ -251,7 +304,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
           res.status(400).json({ error: 'Missing CSV content.' })
           return
         }
-        const result = await saveCsv(cfg, filename, csv)
+        const expectedSha = typeof body.expectedSha === 'string' ? body.expectedSha : undefined
+        const result = await saveCsv(cfg, filename, csv, expectedSha)
         res.status(200).json({ ok: true, ...result })
         return
       }
