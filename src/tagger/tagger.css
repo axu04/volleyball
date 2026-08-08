@@ -423,36 +423,3 @@ a.chip {
 .repo-table tr:last-child td {
   border-bottom: none;
 }
-
-.game-summary-panel {
-  margin-top: 14px;
-}
-
-.game-summary-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-}
-
-.game-summary-head h3 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.game-summary-meta {
-  font-size: 11px;
-  margin-bottom: 10px;
-}
-
-.game-summary-text {
-  margin: 0;
-  white-space: pre-wrap;
-  font-family: inherit;
-  font-size: 13.5px;
-  line-height: 1.55;
-  color: var(--text);
-}

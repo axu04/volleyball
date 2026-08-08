@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { mergeTaggerCsv } from './csvDraft'
-import { formatSummaryMarkdown, parseSummaryMarkdown, summaryFilenameForDate } from './matchDigest'
 import { deleteRepoCsv, formatBytes, listRepoCsvs, readRepoCsv, saveRepoCsv, type RepoFile } from './repoApi'
-import type { GameSummary, TaggerDraft } from './types'
+import type { TaggerDraft } from './types'
 
 const SECRET_KEY = 'volleyball-mania-tagger-secret'
 
@@ -36,14 +35,12 @@ export function RepoAdmin({
   draft,
   onImport,
   onSaved,
-  onSummaryLoaded,
 }: {
   filename: string
   csv: string
   draft: TaggerDraft
   onImport: (filename: string, csv: string, sha: string) => { rallyCount: number; warnings: string[] }
   onSaved: (filename: string, sha: string, csv: string) => void
-  onSummaryLoaded?: (summary: GameSummary | null) => void
 }) {
   const [secret, setSecret] = useState<string>(loadSecret)
   const [files, setFiles] = useState<RepoFile[]>([])
@@ -109,21 +106,6 @@ export function RepoAdmin({
           const remoteNote = merged.remoteChangedSets.length
             ? ` Repository changes in set(s) ${merged.remoteChangedSets.join(', ')} are already preserved.`
             : ''
-          // CSV unchanged — still push a generated match summary if we have one.
-          if (draft.gameSummary?.text) {
-            const summaryName = summaryFilenameForDate(draft.date)
-            await saveRepoCsv({
-              filename: summaryName,
-              csv: formatSummaryMarkdown(draft.gameSummary, draft.date),
-              secret,
-            })
-            setNote({
-              kind: 'ok',
-              text: `${filename} already matches this draft.${remoteNote} Saved ${summaryName}.`,
-            })
-            await refresh()
-            return
-          }
           setNote({ kind: 'ok', text: `${filename} already matches this draft.${remoteNote} Nothing to save.` })
           return
         }
@@ -157,19 +139,9 @@ export function RepoAdmin({
       }
       const saved = await saveRepoCsv({ filename, csv: csvToSave, secret, expectedSha })
       onSaved(filename, saved.sha, csvToSave)
-      let summaryNote = ''
-      if (draft.gameSummary?.text) {
-        const summaryName = summaryFilenameForDate(draft.date)
-        await saveRepoCsv({
-          filename: summaryName,
-          csv: formatSummaryMarkdown(draft.gameSummary, draft.date),
-          secret,
-        })
-        summaryNote = ` Also saved ${summaryName}.`
-      }
       setNote({
         kind: 'ok',
-        text: `Saved ${filename} to the repo.${mergedNote}${summaryNote} Vercel will redeploy; the dashboard updates once that finishes.`,
+        text: `Saved ${filename} to the repo.${mergedNote} Vercel will redeploy; the dashboard updates once that finishes.`,
       })
       await refresh()
     } catch (err) {
@@ -186,13 +158,6 @@ export function RepoAdmin({
     try {
       const existing = await readRepoCsv(name)
       const result = onImport(name, existing.csv, existing.sha)
-      const date = name.replace(/\.csv$/i, '')
-      try {
-        const summaryFile = await readRepoCsv(summaryFilenameForDate(date))
-        onSummaryLoaded?.(parseSummaryMarkdown(summaryFile.csv))
-      } catch {
-        onSummaryLoaded?.(null)
-      }
       const warningText = result.warnings.length ? ` ${result.warnings.length} parser warning(s) were reported.` : ''
       setNote({
         kind: 'ok',

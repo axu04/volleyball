@@ -1,7 +1,4 @@
 import type { Touch } from '../lib/touches'
-import type { GameSummary } from '../lib/summaries'
-
-export type { GameSummary }
 
 export interface TaggedRally {
   id: string
@@ -71,8 +68,6 @@ export interface TaggerDraft {
   /** @deprecated kept so old drafts still load; migrated into `lineups` on read. */
   lineupBlocks?: LineupBlock[]
   officialScores: OfficialScore[]
-  /** Sticky LLM match report for this session. */
-  gameSummary?: GameSummary | null
   /** Repo snapshot loaded or last saved, used for per-set three-way merges. */
   repoSource?: {
     filename: string
@@ -127,7 +122,6 @@ export function emptyDraft(partial?: Partial<TaggerDraft>): TaggerDraft {
     serving: true,
     rallies: [],
     officialScores: [],
-    gameSummary: null,
     updatedAt: Date.now(),
     ...rest,
     rotations,

@@ -55,12 +55,11 @@ function ghHeaders(token: string): Record<string, string> {
   }
 }
 
-/** Only allow a plain CSV or match-summary file name inside `data/` — no paths, no traversal. */
+/** Only allow a plain CSV file name inside `data/` — no paths, no traversal. */
 function sanitizeFilename(name: string): string | null {
   const base = (name.split(/[\\/]/).pop() ?? '').trim()
   if (base.includes('..')) return null
   if (/^[A-Za-z0-9 ._-]+\.csv$/i.test(base)) return base
-  if (/^[A-Za-z0-9 ._-]+\.summary\.md$/i.test(base)) return base
   return null
 }
 
@@ -268,7 +267,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
       if (requested) {
         const filename = sanitizeFilename(requested)
         if (!filename) {
-          res.status(400).json({ error: 'Invalid filename. Use a plain .csv or .summary.md name.' })
+          res.status(400).json({ error: 'Invalid filename. Use a plain .csv name.' })
           return
         }
         res.status(200).json(await readCsv(cfg, filename))
@@ -295,7 +294,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
       const rawName = (body.filename as string | undefined) ?? firstQuery(req.query.filename) ?? ''
       const filename = sanitizeFilename(String(rawName))
       if (!filename) {
-        res.status(400).json({ error: 'Invalid filename. Use a plain .csv or .summary.md name.' })
+        res.status(400).json({ error: 'Invalid filename. Use a plain .csv name.' })
         return
       }
 

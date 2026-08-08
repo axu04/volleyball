@@ -78,19 +78,10 @@ project (never commit them — they are not exposed to the browser):
 | `GITHUB_REPO`   | `owner/name`, e.g. `axu04/volleyball`.                                    |
 | `GITHUB_BRANCH` | Target branch. Optional — defaults to `main`.                            |
 | `TAGGER_SECRET` | Shared password required by the panel for any save or delete.            |
-| `OPENAI_API_KEY` | Used by **Generate summary** on `/tagger` (cheapest OpenAI text model). Optional until you use that button. |
 
 Enter the same `TAGGER_SECRET` value in the panel's **Admin password** field (it is remembered in
 your browser). The admin API only runs on the deployed site — under `vite dev` there is no
 `/api`, so the panel will report that it cannot reach it.
-
-### Match summary
-
-After a match is tagged and **opened or saved** via Repo / admin, use **Generate summary** on
-`/tagger`. It sends an analytical digest (set/possession/phase/rotation contrasts, error patterns,
-touch quality — not a raw scoreboard dump) to OpenAI and keeps the coaching write-up on that
-session. Regenerating replaces it; clearing removes it. Saving also writes `data/<date>.summary.md`
-so the report comes back when you **Open** that CSV again. The dashboard does not show it.
 
 ## Adding a new game (manual CSV)
 
