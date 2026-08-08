@@ -5,6 +5,14 @@ export interface InferredCause {
   players: string[]
 }
 
+export function inferLastTouchPlayer(touches: Touch[]): string | null {
+  for (let index = touches.length - 1; index >= 0; index -= 1) {
+    const touch = touches[index]
+    if (!isOppTouch(touch)) return touch.player
+  }
+  return null
+}
+
 /**
  * Infer outcomes that are fully described by the touch sequence:
  * an untouched opponent serve is their error, our lone serve is an ace or service error,
@@ -31,11 +39,6 @@ export function inferTouchOutcome(
   }
 
   if (!won) return null
-  for (let index = touches.length - 1; index >= 0; index -= 1) {
-    const touch = touches[index]
-    if (!isOppTouch(touch)) {
-      return { cause: 'our_point', players: [touch.player] }
-    }
-  }
-  return null
+  const lastTouchPlayer = inferLastTouchPlayer(touches)
+  return lastTouchPlayer ? { cause: 'our_point', players: [lastTouchPlayer] } : null
 }

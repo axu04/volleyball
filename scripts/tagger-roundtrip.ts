@@ -3,7 +3,7 @@ import { exportTaggerCsv } from '../src/tagger/exportCsv'
 import { autofillLineupsFrom, emptyCourtLineup, isLineupComplete } from '../src/tagger/lineupRotation'
 import { parseSession } from '../src/lib/parse'
 import { importTaggerCsv, mergeTaggerCsv } from '../src/tagger/csvDraft'
-import { inferTouchOutcome } from '../src/tagger/inference'
+import { inferLastTouchPlayer, inferTouchOutcome } from '../src/tagger/inference'
 import { createPlanForSet } from '../src/tagger/rotationPlans'
 import { addRotation, advanceAfterRally } from '../src/tagger/state'
 import { emptyDraft, type LineupDraft, type RotationPlan, type TaggedRally } from '../src/tagger/types'
@@ -48,6 +48,14 @@ const inferredReceiveKill = inferTouchOutcome(false, true, [
 ])
 if (inferredReceiveKill?.cause !== 'our_point' || inferredReceiveKill.players[0] !== 'Alec') {
   throw new Error('a receiving win should infer a kill for the last player touch')
+}
+const inferredLossPlayer = inferLastTouchPlayer([
+  { player: 'Avy', skill: 'r', quality: 2 },
+  { player: 'Amber', skill: 's', quality: 1 },
+  { opp: true },
+])
+if (inferredLossPlayer !== 'Amber') {
+  throw new Error('a loss should suggest the last player touch')
 }
 
 const openingSideout = advanceAfterRally({
