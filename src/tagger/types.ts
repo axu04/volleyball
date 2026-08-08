@@ -49,6 +49,9 @@ export interface OfficialScore {
   them: number
 }
 
+/** LLM post-match report — sticky on the tagger once generated. */
+export type { GameSummary } from '../lib/summaries'
+
 export interface TaggerDraft {
   version: 1
   date: string
@@ -68,6 +71,8 @@ export interface TaggerDraft {
   /** @deprecated kept so old drafts still load; migrated into `lineups` on read. */
   lineupBlocks?: LineupBlock[]
   officialScores: OfficialScore[]
+  /** Sticky LLM match report for this session. */
+  gameSummary?: GameSummary | null
   /** Repo snapshot loaded or last saved, used for per-set three-way merges. */
   repoSource?: {
     filename: string
@@ -122,6 +127,7 @@ export function emptyDraft(partial?: Partial<TaggerDraft>): TaggerDraft {
     serving: true,
     rallies: [],
     officialScores: [],
+    gameSummary: null,
     updatedAt: Date.now(),
     ...rest,
     rotations,

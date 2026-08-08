@@ -57,6 +57,7 @@ function migrate(raw: Partial<TaggerDraft>): TaggerDraft {
     rotationPlans,
     rotation: activePlan.rotations.includes(raw.rotation ?? '') ? raw.rotation! : activePlan.rotations[0],
     rallies,
+    gameSummary: raw.gameSummary ?? null,
     lineupBlocks: undefined,
   }
 }
