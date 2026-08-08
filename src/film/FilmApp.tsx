@@ -1,21 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { causeMeta, isOurError } from '../lib/causes'
 import { loadBundledSessions } from '../lib/load'
 import { formatTouchLabel } from '../lib/touches'
 import type { Rally, Session } from '../lib/types'
-import { extractVideoId, formatVideoTimestamp, parseVideoTimestamp } from '../tagger/youtube'
-import { YouTubePlayer, type YouTubePlayerHandle } from '../tagger/YouTubePlayer'
+import { extractVideoId, formatVideoTimestamp } from '../tagger/youtube'
 import { playerColor } from '../components/ui'
+import { clipWindow } from './clipWindow'
+import { SessionFilmPlayer } from './clips'
 import '../tagger/tagger.css'
 import './film.css'
 
 const KEY = 'sdwfu-film-player'
-/** Sheet timestamps mark when the rally ends; pad a beat after so the whistle lands. */
-const PAD_AFTER = 2
-/** How far before the end mark to start — keeps the error contact on screen, not the prior point. */
-const LOOKBACK = 14
-const DEFAULT_CLIP = 18
-const MAX_CLIP = 28
 
 export interface ErrorClip {
   rally: Rally
@@ -23,34 +18,6 @@ export interface ErrorClip {
   youtubeUrl: string
   start: number
   end: number
-}
-
-/**
- * Timestamps are end-of-rally. Prefer a short lookback into this point so long gaps (and the
- * previous rally) don't dominate the clip; never start before the prior rally's end mark.
- */
-function clipWindow(rally: Rally, session: Session): { start: number; end: number } | null {
-  const endRaw = parseVideoTimestamp(rally.videoTimestamp)
-  if (endRaw === null) return null
-
-  const peers = session.rallies
-    .filter((r) => r.set === rally.set)
-    .map((r) => ({ r, t: parseVideoTimestamp(r.videoTimestamp) }))
-    .filter((x): x is { r: Rally; t: number } => x.t !== null)
-    .sort((a, b) => a.t - b.t || a.r.n - b.r.n)
-
-  const idx = peers.findIndex((p) => p.r.id === rally.id)
-  const prev = idx > 0 ? peers[idx - 1] : undefined
-
-  let end = endRaw + PAD_AFTER
-  let start = Math.max(0, endRaw - LOOKBACK)
-  if (prev) start = Math.max(start, prev.t)
-  else start = Math.max(0, endRaw - DEFAULT_CLIP)
-
-  if (end <= start) start = Math.max(0, end - LOOKBACK)
-  if (end - start > MAX_CLIP) start = Math.max(prev?.t ?? 0, end - MAX_CLIP)
-
-  return { start, end: Math.max(start + 4, end) }
 }
 
 function playerErrors(sessions: Session[], name: string): ErrorClip[] {
@@ -84,52 +51,6 @@ function rosterWithErrors(sessions: Session[]): string[] {
     }
   }
   return [...names].sort((a, b) => a.localeCompare(b))
-}
-
-/** One match film for the session — seek between clips instead of remounting a new embed. */
-function SessionFilmPlayer({
-  url,
-  start,
-  end,
-  autoplay,
-}: {
-  url: string
-  start: number
-  end: number
-  autoplay: boolean
-}) {
-  const playerRef = useRef<YouTubePlayerHandle>(null)
-  const endRef = useRef(end)
-  endRef.current = end
-
-  useEffect(() => {
-    const yt = playerRef.current
-    if (!yt) return
-
-    const seek = () => {
-      yt.seekTo(Math.max(0, start))
-      if (autoplay) yt.play()
-      else yt.pause()
-    }
-
-    seek()
-    const boot = window.setTimeout(seek, 400)
-
-    const watch = window.setInterval(() => {
-      if (yt.getCurrentTime() >= endRef.current - 0.15) yt.pause()
-    }, 200)
-
-    return () => {
-      window.clearTimeout(boot)
-      window.clearInterval(watch)
-    }
-  }, [url, start, end, autoplay])
-
-  return (
-    <div className="film-player">
-      <YouTubePlayer ref={playerRef} url={url} />
-    </div>
-  )
 }
 
 export default function FilmApp() {
@@ -263,6 +184,9 @@ export default function FilmApp() {
           </a>
           <a className="chip" href="/stats">
             Dashboard
+          </a>
+          <a className="chip" href="/highlights">
+            Highlights
           </a>
           <a className="chip" href="/glossary">
             Glossary

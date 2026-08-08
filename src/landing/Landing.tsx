@@ -19,6 +19,7 @@ export default function Landing() {
         </a>
         <nav className="landing-nav-links">
           <a href="/stats">Dashboard</a>
+          <a href="/highlights">Highlights</a>
           <a href="/film">Error film</a>
           <a href="/glossary">Glossary</a>
         </nav>
@@ -33,15 +34,15 @@ export default function Landing() {
           For Us
         </h1>
         <p className="landing-lede">
-          Stats and error film for rec volleyball. The numbers are noisy, incomplete, and swing
-          wildly game to game — use them to ask better questions, not grade anyone.
+          Stats, highlights, and error film for rec volleyball. The numbers are noisy, incomplete,
+          and swing wildly game to game — use them to ask better questions, not grade anyone.
         </p>
         <div className="landing-ctas">
           <a className="landing-cta-primary" href="/stats">
             Open dashboard
           </a>
-          <a className="landing-cta-ghost" href="/film">
-            Error film
+          <a className="landing-cta-ghost" href="/highlights">
+            Highlight reel
           </a>
         </div>
       </section>

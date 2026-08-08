@@ -13,7 +13,10 @@ npm run dev
 
 Then open the URL Vite prints (default http://localhost:5177).
 
-- **Dashboard** — http://localhost:5177/
+- **Home** — http://localhost:5177/
+- **Dashboard** — http://localhost:5177/stats
+- **Highlight reel** — http://localhost:5177/highlights
+- **Error film** — http://localhost:5177/film
 - **Rally tagger** — http://localhost:5177/tagger
 
 ## Tagging a match (instead of hand-editing a sheet)

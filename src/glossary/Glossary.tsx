@@ -124,6 +124,9 @@ export default function Glossary() {
           <a className="chip" href="/film">
             Error film
           </a>
+          <a className="chip" href="/highlights">
+            Highlights
+          </a>
         </div>
       </header>
 

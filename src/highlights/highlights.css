@@ -1,0 +1,173 @@
+.highlights-app .masthead {
+  margin-bottom: 16px;
+}
+
+.highlight-feature,
+.highlight-skill-section {
+  background: var(--panel);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.highlight-feature {
+  margin-bottom: 20px;
+}
+
+.highlight-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.highlight-section-head h2 {
+  font-size: 18px;
+}
+
+.highlight-section-head p {
+  margin: 4px 0 0;
+  color: var(--text-dim);
+  font-size: 12.5px;
+}
+
+.highlight-kicker {
+  color: var(--win);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+
+.highlight-count {
+  min-width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.highlight-feature-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.highlight-finish-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 650px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.highlight-stage {
+  top: 16px;
+  scroll-margin-top: 16px;
+}
+
+.highlight-clip {
+  width: 100%;
+  text-align: left;
+  background: var(--bg-elev);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  padding: 10px 11px;
+  color: inherit;
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease;
+}
+
+.highlight-clip:hover {
+  border-color: var(--border);
+}
+
+.highlight-clip.on {
+  border-color: #fff;
+  background: #111;
+}
+
+.highlight-clip-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.highlight-clip-meta {
+  font-size: 11.5px;
+  margin-top: 4px;
+}
+
+.highlight-clip-note {
+  font-size: 11.5px;
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.highlight-now {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 15px;
+}
+
+.highlight-now span {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.highlight-skill-sections {
+  display: grid;
+  gap: 16px;
+}
+
+.highlight-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.highlight-show-all {
+  margin-top: 10px;
+}
+
+@media (max-width: 1000px) {
+  .highlight-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .highlight-feature-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .highlight-stage {
+    position: static;
+  }
+
+  .highlight-finish-list {
+    max-height: 420px;
+  }
+}
+
+@media (max-width: 620px) {
+  .highlight-card-grid {
+    grid-template-columns: 1fr;
+  }
+}
