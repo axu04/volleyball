@@ -89,8 +89,13 @@ export default function TaggerApp() {
   )
 
   const inferredOutcome = inferTouchOutcome(draft.serving, won, touches)
-  const effectiveCause = inferredOutcome?.cause ?? cause
-  const effectivePlayers = inferredOutcome?.players ?? players
+  const suggestedKill = inferredOutcome?.cause === 'our_point'
+  const effectiveCause = suggestedKill ? cause || inferredOutcome.cause : inferredOutcome?.cause ?? cause
+  const effectivePlayers = suggestedKill
+    ? players.length
+      ? players
+      : inferredOutcome.players
+    : inferredOutcome?.players ?? players
   const canCommit = won !== null && !!effectiveCause && !!draft.rotation && !!draft.set
 
   const trackedScore = useMemo(() => {

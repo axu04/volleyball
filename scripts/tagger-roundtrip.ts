@@ -31,14 +31,23 @@ const inferredAceWithOpp = inferTouchOutcome(true, true, [
 if (inferredAceWithOpp?.cause !== 'aced_on_them_suckas') {
   throw new Error('serve followed only by an opponent marker should still infer an ace')
 }
-if (
-  inferTouchOutcome(true, true, [
-    { player: 'Sofia', skill: 'v', quality: 3 },
-    { opp: true },
-    { player: 'Amber', skill: 'r', quality: 2 },
-  ])
-) {
-  throw new Error('a later player touch must disable serve-only inference')
+const inferredKillAfterServe = inferTouchOutcome(true, true, [
+  { player: 'Sofia', skill: 'v', quality: 3 },
+  { opp: true },
+  { player: 'Amber', skill: 'r', quality: 2 },
+  { player: 'Jess', skill: 'a', quality: 3 },
+  { opp: true },
+])
+if (inferredKillAfterServe?.cause !== 'our_point' || inferredKillAfterServe.players[0] !== 'Jess') {
+  throw new Error('a won rally after a returned serve should infer a kill for the last player touch')
+}
+const inferredReceiveKill = inferTouchOutcome(false, true, [
+  { player: 'Avy', skill: 'r', quality: 2 },
+  { player: 'Amber', skill: 's', quality: 3 },
+  { player: 'Alec', skill: 'a', quality: 3 },
+])
+if (inferredReceiveKill?.cause !== 'our_point' || inferredReceiveKill.players[0] !== 'Alec') {
+  throw new Error('a receiving win should infer a kill for the last player touch')
 }
 
 const openingSideout = advanceAfterRally({
