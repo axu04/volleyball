@@ -64,8 +64,8 @@ export function coreStats(rallies: Rally[]): CoreStats {
   const aces = count((r) => r.cause === 'aced_on_them_suckas')
   const oppErrPoints = count((r) => r.cause === 'opp_err')
   const errors = count((r) => isOurError(r.cause, r.won))
-  // Everything we lost that is not charged to us — the opponent earning it, or a call going
-  // against us. Derived by subtraction so a new cause can never fall between the two buckets.
+  // Everything we lost that is not charged to us — points the opponent earned.
+  // Derived by subtraction so a new cause can never fall between the two buckets.
   const conceded = lost - errors
   const serveErrs = count((r) => r.cause === 'serve_err')
   const acedOn = count((r) => r.cause === 'aced_on_us')

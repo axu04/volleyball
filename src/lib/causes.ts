@@ -114,7 +114,7 @@ const META: CauseMeta[] = [
     label: 'Call / fault against us',
     short: 'Fault',
     side: 'loss',
-    kind: 'conceded',
+    kind: 'error',
     group: GROUPS.other,
     color: '#525252',
   },
