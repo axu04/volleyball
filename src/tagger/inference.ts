@@ -5,12 +5,18 @@ export interface InferredCause {
   players: string[]
 }
 
-/** A rally where our only player touch is the serve is an ace when won or a serve error when lost. */
-export function inferSingleServeOutcome(
+/**
+ * Infer outcomes that are fully described by the touch sequence:
+ * an untouched opponent serve is their error, while our lone serve is an ace or service error.
+ */
+export function inferTouchOutcome(
   serving: boolean,
   won: boolean | null,
   touches: Touch[],
 ): InferredCause | null {
+  if (!serving && won === true && touches.length === 0) {
+    return { cause: 'opp_err', players: [] }
+  }
   if (!serving || won === null || touches.length === 0) return null
   const serve = touches[0]
   if (isOppTouch(serve) || serve.skill !== 'v') return null

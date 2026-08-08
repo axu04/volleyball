@@ -7,7 +7,7 @@ import { RallyForm } from './RallyForm'
 import { RallyLog } from './RallyLog'
 import { RepoAdmin } from './RepoAdmin'
 import { importTaggerCsv, repoSourceForDraft } from './csvDraft'
-import { inferSingleServeOutcome } from './inference'
+import { inferTouchOutcome } from './inference'
 import { assignSetToPlan, createPlanForSet, planForSet, updateRotationPlan } from './rotationPlans'
 import { advanceAfterRally, addRotation, clearDraft, loadDraft, nextRotation, removeRotation, saveDraft } from './state'
 import type { TaggedRally, TaggerDraft } from './types'
@@ -88,9 +88,9 @@ export default function TaggerApp() {
     [],
   )
 
-  const inferredServe = inferSingleServeOutcome(draft.serving, won, touches)
-  const effectiveCause = inferredServe?.cause ?? cause
-  const effectivePlayers = inferredServe?.players ?? players
+  const inferredOutcome = inferTouchOutcome(draft.serving, won, touches)
+  const effectiveCause = inferredOutcome?.cause ?? cause
+  const effectivePlayers = inferredOutcome?.players ?? players
   const canCommit = won !== null && !!effectiveCause && !!draft.rotation && !!draft.set
 
   const trackedScore = useMemo(() => {

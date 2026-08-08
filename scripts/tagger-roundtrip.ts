@@ -3,20 +3,28 @@ import { exportTaggerCsv } from '../src/tagger/exportCsv'
 import { autofillLineupsFrom, emptyCourtLineup, isLineupComplete } from '../src/tagger/lineupRotation'
 import { parseSession } from '../src/lib/parse'
 import { importTaggerCsv, mergeTaggerCsv } from '../src/tagger/csvDraft'
-import { inferSingleServeOutcome } from '../src/tagger/inference'
+import { inferTouchOutcome } from '../src/tagger/inference'
 import { createPlanForSet } from '../src/tagger/rotationPlans'
 import { addRotation, advanceAfterRally } from '../src/tagger/state'
 import { emptyDraft, type LineupDraft, type RotationPlan, type TaggedRally } from '../src/tagger/types'
 
-const inferredAce = inferSingleServeOutcome(true, true, [{ player: 'Sofia', skill: 'v', quality: 3 }])
+const inferredOpponentServeError = inferTouchOutcome(false, true, [])
+if (inferredOpponentServeError?.cause !== 'opp_err' || inferredOpponentServeError.players.length !== 0) {
+  throw new Error('an untouched opponent serve should infer an opponent error with no player')
+}
+if (inferTouchOutcome(true, true, []) || inferTouchOutcome(false, false, [])) {
+  throw new Error('empty touches should only infer a winning receive outcome')
+}
+
+const inferredAce = inferTouchOutcome(true, true, [{ player: 'Sofia', skill: 'v', quality: 3 }])
 if (inferredAce?.cause !== 'aced_on_them_suckas' || inferredAce.players[0] !== 'Sofia') {
   throw new Error('single-touch winning serve should infer an ace')
 }
-const inferredError = inferSingleServeOutcome(true, false, [{ player: 'Sofia', skill: 'v', quality: 0 }])
+const inferredError = inferTouchOutcome(true, false, [{ player: 'Sofia', skill: 'v', quality: 0 }])
 if (inferredError?.cause !== 'serve_err' || inferredError.players[0] !== 'Sofia') {
   throw new Error('single-touch losing serve should infer a serve error')
 }
-const inferredAceWithOpp = inferSingleServeOutcome(true, true, [
+const inferredAceWithOpp = inferTouchOutcome(true, true, [
   { player: 'Sofia', skill: 'v', quality: 3 },
   { opp: true },
 ])
@@ -24,7 +32,7 @@ if (inferredAceWithOpp?.cause !== 'aced_on_them_suckas') {
   throw new Error('serve followed only by an opponent marker should still infer an ace')
 }
 if (
-  inferSingleServeOutcome(true, true, [
+  inferTouchOutcome(true, true, [
     { player: 'Sofia', skill: 'v', quality: 3 },
     { opp: true },
     { player: 'Amber', skill: 'r', quality: 2 },
