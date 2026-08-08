@@ -13,9 +13,11 @@ export function GameSummaryPanel({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const summary = draft.gameSummary ?? null
+  const fromRepo = Boolean(draft.repoSource?.filename)
+  const canGenerate = fromRepo && draft.rallies.length > 0
 
   const generate = async (replace: boolean) => {
-    if (!draft.rallies.length) return
+    if (!canGenerate) return
     if (summary && !replace) return
     const secret = loadTaggerSecret()
     if (!secret) {
@@ -43,7 +45,9 @@ export function GameSummaryPanel({
         <div>
           <h3>Match summary</h3>
           <div className="hint">
-            Film-room analysis from patterns in the tags — not a stats dump · regenerate to refresh
+            {fromRepo
+              ? `Film-room write-up for ${draft.repoSource!.filename} · save to repo to publish on Overview`
+              : 'Open a session from Repo / admin first — summaries are per saved game'}
           </div>
         </div>
         <div className="badge-row">
@@ -51,7 +55,7 @@ export function GameSummaryPanel({
             <button
               type="button"
               className="chip primary"
-              disabled={busy || !draft.rallies.length}
+              disabled={busy || !canGenerate}
               onClick={() => void generate(false)}
             >
               {busy ? 'Writing…' : 'Generate summary'}
@@ -61,7 +65,7 @@ export function GameSummaryPanel({
               <button
                 type="button"
                 className="chip"
-                disabled={busy || !draft.rallies.length}
+                disabled={busy || !canGenerate}
                 onClick={() => void generate(true)}
               >
                 {busy ? 'Writing…' : 'Regenerate'}
@@ -91,9 +95,11 @@ export function GameSummaryPanel({
 
       {!summary && !error && (
         <div className="muted" style={{ fontSize: 13 }}>
-          {draft.rallies.length
-            ? 'Run this after the match is tagged — it uses cause tags, scores, and player nets.'
-            : 'Tag some rallies first.'}
+          {!fromRepo
+            ? 'Load or save this match via Repo / admin, then generate. The dashboard only shows the report when that one session is selected.'
+            : draft.rallies.length
+              ? 'Run this after the match is tagged — then Save so Overview can load it for this session.'
+              : 'Tag some rallies first.'}
         </div>
       )}
     </section>

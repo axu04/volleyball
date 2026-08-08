@@ -36,11 +36,14 @@ export function Overview({
   rallies,
   sessions,
   focusPlayers = [],
+  showMatchSummary = false,
 }: {
   /** Session/set/phase context — not pre-filtered by player involvement. */
   rallies: Rally[]
   sessions: Session[]
   focusPlayers?: string[]
+  /** Only when one session chip is selected (not All / multi). */
+  showMatchSummary?: boolean
 }) {
   if (!rallies.length) return <Empty>No rallies match these filters.</Empty>
 
@@ -450,29 +453,25 @@ export function Overview({
         </Card>
       </div>
 
-      <MatchSummaries sessions={sessions} />
+      <MatchSummaries sessions={sessions} enabled={showMatchSummary} />
     </>
   )
 }
 
-function MatchSummaries({ sessions }: { sessions: Session[] }) {
-  const withSummary = sessions.filter((s) => s.summary?.text?.trim())
-  if (!withSummary.length) return null
+function MatchSummaries({ sessions, enabled }: { sessions: Session[]; enabled: boolean }) {
+  if (!enabled || sessions.length !== 1) return null
+  const session = sessions[0]!
+  const summary = session.summary
+  if (!summary?.text?.trim()) return null
 
   return (
     <div className="match-summaries" style={{ marginTop: 14 }}>
-      {withSummary.map((s) => {
-        const summary = s.summary!
-        return (
-          <Card
-            key={s.id}
-            title={withSummary.length > 1 ? `Match summary · ${s.label}` : 'Match summary'}
-            hint={`${new Date(summary.generatedAt).toLocaleString()} · ${summary.model}`}
-          >
-            <pre className="match-summary-text">{summary.text}</pre>
-          </Card>
-        )
-      })}
+      <Card
+        title="Match summary"
+        hint={`${new Date(summary.generatedAt).toLocaleString()} · ${summary.model}`}
+      >
+        <pre className="match-summary-text">{summary.text}</pre>
+      </Card>
     </div>
   )
 }

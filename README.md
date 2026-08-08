@@ -86,11 +86,12 @@ your browser). The admin API only runs on the deployed site — under `vite dev`
 
 ### Match summary
 
-After a match is tagged, use **Generate summary** on `/tagger`. It sends an analytical digest
-(set/possession/phase/rotation contrasts, error patterns, touch quality — not a raw scoreboard
-dump) to OpenAI and keeps the coaching write-up on the session. Regenerating replaces it;
-clearing removes it. Saving the session to the repo also writes `data/<date>.summary.md` so the
-report comes back when you **Open** that CSV and shows on the dashboard Overview after deploy.
+After a match is tagged and **opened or saved** via Repo / admin, use **Generate summary** on
+`/tagger`. It sends an analytical digest (set/possession/phase/rotation contrasts, error patterns,
+touch quality — not a raw scoreboard dump) to OpenAI and keeps the coaching write-up on that
+session. Regenerating replaces it; clearing removes it. Saving also writes `data/<date>.summary.md`.
+On the dashboard Overview, the report appears only when that **one session** is selected in the
+filter (not under All).
 
 ## Adding a new game (manual CSV)
 
