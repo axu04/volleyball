@@ -1,5 +1,4 @@
 import type { Touch } from './touches'
-import type { GameSummary } from './summaries'
 
 export type CauseSide = 'win' | 'loss'
 
@@ -121,6 +120,4 @@ export interface Session {
   players: string[]
   warnings: string[]
   serverInference: ServerInference
-  /** LLM match report from tagger, if `data/<date>.summary.md` exists. */
-  summary?: GameSummary | null
 }

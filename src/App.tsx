@@ -276,12 +276,7 @@ export default function App() {
           )}
 
           {tab === 'Overview' && (
-            <Overview
-              rallies={contextRallies}
-              sessions={activeSessions}
-              focusPlayers={pickedPlayers}
-              showMatchSummary={pickedSessions.length === 1}
-            />
+            <Overview rallies={contextRallies} sessions={activeSessions} focusPlayers={pickedPlayers} />
           )}
           {tab === 'Touches' && <Touches rallies={touchRallies} focusPlayers={pickedPlayers} />}
           {tab === 'Players' && <Players rallies={contextRallies} focusPlayers={pickedPlayers} />}

@@ -46,7 +46,7 @@ export function GameSummaryPanel({
           <h3>Match summary</h3>
           <div className="hint">
             {fromRepo
-              ? `Film-room write-up for ${draft.repoSource!.filename} · save to repo to publish on Overview`
+              ? `Film-room write-up for ${draft.repoSource!.filename} · save to repo to keep it`
               : 'Open a session from Repo / admin first — summaries are per saved game'}
           </div>
         </div>
@@ -96,9 +96,9 @@ export function GameSummaryPanel({
       {!summary && !error && (
         <div className="muted" style={{ fontSize: 13 }}>
           {!fromRepo
-            ? 'Load or save this match via Repo / admin, then generate. The dashboard only shows the report when that one session is selected.'
+            ? 'Load or save this match via Repo / admin, then generate.'
             : draft.rallies.length
-              ? 'Run this after the match is tagged — then Save so Overview can load it for this session.'
+              ? 'Run this after the match is tagged — then Save so it sticks with the session.'
               : 'Tag some rallies first.'}
         </div>
       )}
