@@ -1,4 +1,7 @@
 import type { Touch } from '../lib/touches'
+import type { GameSummary } from '../lib/summaries'
+
+export type { GameSummary }
 
 export interface TaggedRally {
   id: string
@@ -48,9 +51,6 @@ export interface OfficialScore {
   us: number
   them: number
 }
-
-/** LLM post-match report — sticky on the tagger once generated. */
-export type { GameSummary } from '../lib/summaries'
 
 export interface TaggerDraft {
   version: 1
