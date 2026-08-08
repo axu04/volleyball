@@ -40,7 +40,7 @@ export function RepoAdmin({
   csv: string
   draft: TaggerDraft
   onImport: (filename: string, csv: string, sha: string) => { rallyCount: number; warnings: string[] }
-  onSaved: (filename: string, sha: string) => void
+  onSaved: (filename: string, sha: string, csv: string) => void
 }) {
   const [secret, setSecret] = useState<string>(loadSecret)
   const [files, setFiles] = useState<RepoFile[]>([])
@@ -93,34 +93,42 @@ export function RepoAdmin({
       let expectedSha: string | undefined
       if (alreadyExists) {
         const existing = await readRepoCsv(filename)
-        if (
-          draft.repoSource?.filename.toLowerCase() === filename.toLowerCase() &&
-          draft.repoSource.sha !== existing.sha
-        ) {
+        const merged = mergeTaggerCsv(filename, existing.csv, draft)
+        if (merged.conflictingSets.length) {
           throw new Error(
-            `${filename} changed after you opened it. Reopen the latest file before saving; no data was overwritten.`,
+            `Both this browser draft and the repository changed set(s) ${merged.conflictingSets.join(
+              ', ',
+            )}. Download this draft for safekeeping, then reopen the latest file and reconcile those set(s). Nothing was overwritten.`,
           )
         }
-        const merged = mergeTaggerCsv(filename, existing.csv, draft)
         if (!merged.changes.length && !merged.lineupsChanged) {
-          setNote({ kind: 'ok', text: `${filename} already matches this draft. Nothing to save.` })
+          onSaved(filename, existing.sha, existing.csv)
+          const remoteNote = merged.remoteChangedSets.length
+            ? ` Repository changes in set(s) ${merged.remoteChangedSets.join(', ')} are already preserved.`
+            : ''
+          setNote({ kind: 'ok', text: `${filename} already matches this draft.${remoteNote} Nothing to save.` })
           return
         }
         csvToSave = merged.csv
         expectedSha = existing.sha
         const changeLines = merged.changes.map(
-          (change) =>
-            change.savedRallies
+          (change) => {
+            if (!change.ralliesChanged && change.lineupChanged) return `Update set ${change.set} line-up`
+            return change.savedRallies
               ? `Replace set ${change.set}: ${change.savedRallies} saved rallies → ${change.draftRallies} edited rallies`
-              : `Append new set ${change.set}: ${change.draftRallies} rallies`,
+              : `Append new set ${change.set}: ${change.draftRallies} rallies`
+          },
         )
         const preserveLine = merged.preservedSets.length
           ? `\nPreserving saved set(s): ${merged.preservedSets.join(', ')}.`
           : ''
         const lineupLine = merged.lineupsChanged ? '\nUpdate line-ups.' : ''
+        const remoteLine = merged.remoteChangedSets.length
+          ? `\nPreserve newer repository changes in set(s): ${merged.remoteChangedSets.join(', ')}.`
+          : ''
         if (
           !confirm(
-            `Save changes to ${filename}?\n\n${changeLines.join('\n')}${lineupLine}${preserveLine}\n\nThe previous version remains recoverable in Git history.`,
+            `Save changes to ${filename}?\n\n${changeLines.join('\n')}${lineupLine}${preserveLine}${remoteLine}\n\nThe previous version remains recoverable in Git history.`,
           )
         ) {
           return
@@ -130,7 +138,7 @@ export function RepoAdmin({
         }
       }
       const saved = await saveRepoCsv({ filename, csv: csvToSave, secret, expectedSha })
-      onSaved(filename, saved.sha)
+      onSaved(filename, saved.sha, csvToSave)
       setNote({
         kind: 'ok',
         text: `Saved ${filename} to the repo.${mergedNote} Vercel will redeploy; the dashboard updates once that finishes.`,

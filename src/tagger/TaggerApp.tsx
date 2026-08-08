@@ -564,12 +564,26 @@ export default function TaggerApp() {
             csv={csv}
             draft={draft}
             onImport={importCsv}
-            onSaved={(savedFilename, sha) =>
-              setDraft((current) => ({
-                ...current,
-                repoSource: repoSourceForDraft(savedFilename, sha, current),
-              }))
-            }
+            onSaved={(savedFilename, sha, savedCsv) => {
+              const saved = importTaggerCsv(savedFilename, savedCsv, sha).draft
+              setDraft((current) => {
+                const savedPlan = planForSet({ rotationPlans: saved.rotationPlans, set: current.set })
+                return {
+                  ...saved,
+                  videoTitle: current.videoTitle,
+                  set: current.set,
+                  youtubeUrl:
+                    saved.rallies.find((rally) => rally.set === current.set)?.youtubeUrl ||
+                    saved.youtubeUrl,
+                  rotations: savedPlan.rotations,
+                  lineups: savedPlan.lineups,
+                  serving: current.serving,
+                  rotation: savedPlan.rotations.includes(current.rotation)
+                    ? current.rotation
+                    : savedPlan.rotations[0],
+                }
+              })
+            }}
           />
         )}
       </section>

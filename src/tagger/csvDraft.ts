@@ -36,12 +36,36 @@ function setFingerprint(draft: TaggerDraft, set: string): string {
   })
 }
 
+function lineupFingerprint(draft: TaggerDraft, set: string): string {
+  const plan = planForSet({ rotationPlans: draft.rotationPlans, set })
+  return JSON.stringify({
+    rotations: plan.rotations,
+    lineups: plan.lineups.map(normalizeLineup),
+  })
+}
+
+function dataSets(draft: TaggerDraft): string[] {
+  return [
+    ...new Set([...draft.rallies.map((rally) => rally.set), ...draft.officialScores.map((score) => score.set)]),
+  ].sort(compareLabels)
+}
+
+function draftSets(draft: TaggerDraft): string[] {
+  return [
+    ...new Set([
+      ...dataSets(draft),
+      ...draft.rotationPlans.flatMap((plan) => plan.sets),
+    ]),
+  ].sort(compareLabels)
+}
+
 export function repoSourceForDraft(filename: string, sha: string, draft: TaggerDraft): NonNullable<TaggerDraft['repoSource']> {
-  const sets = [...new Set(draft.rallies.map((rally) => rally.set))]
+  const sets = draftSets(draft)
   return {
     filename,
     sha,
     setFingerprints: Object.fromEntries(sets.map((set) => [set, setFingerprint(draft, set)])),
+    lineupFingerprints: Object.fromEntries(sets.map((set) => [set, lineupFingerprint(draft, set)])),
     lineupsFingerprint: rotationPlansFingerprint(draft.rotationPlans),
   }
 }
@@ -223,11 +247,15 @@ export interface MergedCsv {
   csv: string
   preservedSets: string[]
   replacedSets: string[]
+  remoteChangedSets: string[]
+  conflictingSets: string[]
   warnings: string[]
   changes: Array<{
     set: string
     savedRallies: number
     draftRallies: number
+    ralliesChanged: boolean
+    lineupChanged: boolean
   }>
   lineupsChanged: boolean
 }
@@ -237,11 +265,45 @@ export function mergeTaggerCsv(filename: string, existingCsv: string, current: T
   const existing = imported.draft
   const source = current.repoSource?.filename.toLowerCase() === filename.toLowerCase() ? current.repoSource : undefined
   const candidateSets = [
-    ...new Set([...current.rallies.map((rally) => rally.set), ...Object.keys(source?.setFingerprints ?? {})]),
+    ...new Set([
+      ...dataSets(current),
+      ...Object.keys(source?.setFingerprints ?? {}),
+      ...Object.keys(source?.lineupFingerprints ?? {}),
+    ]),
   ]
+  const comparisonSets = [...new Set([...candidateSets, ...draftSets(existing)])]
+  const localRallyChanges = new Set(
+    candidateSets.filter((set) => !source || source.setFingerprints[set] !== setFingerprint(current, set)),
+  )
+  const localLineupChanges = new Set(
+    candidateSets.filter((set) => {
+      if (!source) return draftSets(current).includes(set)
+      if (source.lineupFingerprints) {
+        return source.lineupFingerprints[set] !== lineupFingerprint(current, set)
+      }
+      return set === current.set && source.lineupsFingerprint !== rotationPlansFingerprint(current.rotationPlans)
+    }),
+  )
   const replacedSets = candidateSets
-    .filter((set) => !source || source.setFingerprints[set] !== setFingerprint(current, set))
+    .filter((set) => localRallyChanges.has(set) || localLineupChanges.has(set))
     .sort(compareLabels)
+  const remoteChangedSets = source
+    ? comparisonSets
+        .filter((set) => {
+          const remoteDataChanged =
+            source.setFingerprints[set] === undefined
+              ? draftSets(existing).includes(set)
+              : source.setFingerprints[set] !== setFingerprint(existing, set)
+          const remoteLineupChanged =
+            source.lineupFingerprints?.[set] === undefined
+              ? false
+              : source.lineupFingerprints[set] !== lineupFingerprint(existing, set)
+          return remoteDataChanged || remoteLineupChanged
+        })
+        .sort(compareLabels)
+    : []
+  const remoteChanged = new Set(remoteChangedSets)
+  const conflictingSets = replacedSets.filter((set) => remoteChanged.has(set))
   const replaced = new Set(replacedSets)
   const preservedSets = [...new Set(existing.rallies.map((rally) => rally.set))]
     .filter((set) => !replaced.has(set))
@@ -250,6 +312,8 @@ export function mergeTaggerCsv(filename: string, existingCsv: string, current: T
     set,
     savedRallies: existing.rallies.filter((rally) => rally.set === set).length,
     draftRallies: current.rallies.filter((rally) => rally.set === set).length,
+    ralliesChanged: localRallyChanges.has(set),
+    lineupChanged: localLineupChanges.has(set),
   }))
 
   const rallies = [
@@ -266,8 +330,8 @@ export function mergeTaggerCsv(filename: string, existingCsv: string, current: T
   ].sort((a, b) => compareLabels(a.set, b.set))
 
   const rotationPlans = mergeRotationPlans(existing, current, replacedSets, preservedSets)
-  const baselineLineups = source?.lineupsFingerprint ?? rotationPlansFingerprint(existing.rotationPlans)
-  const lineupsChanged = baselineLineups !== rotationPlansFingerprint(rotationPlans)
+  const lineupsChanged =
+    rotationPlansFingerprint(existing.rotationPlans) !== rotationPlansFingerprint(rotationPlans)
   const activePlan = planForSet({ rotationPlans, set: current.set })
   const merged = {
     ...current,
@@ -290,6 +354,8 @@ export function mergeTaggerCsv(filename: string, existingCsv: string, current: T
     }),
     preservedSets,
     replacedSets,
+    remoteChangedSets,
+    conflictingSets,
     warnings: imported.warnings,
     changes,
     lineupsChanged,

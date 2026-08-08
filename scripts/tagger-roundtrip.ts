@@ -223,6 +223,86 @@ if (continuedSession.sets.find((set) => set.set === '2')?.rallies.length !== 1) 
   throw new Error('continued tagging did not append exactly one new-set rally')
 }
 
+const remoteSet1 = importTaggerCsv('2026-08-02.csv', csv).draft
+remoteSet1.rallies[0].notes = 'edited directly in the repository'
+const remoteSet1Csv = exportTaggerCsv({
+  rallies: remoteSet1.rallies,
+  youtubeUrl: remoteSet1.youtubeUrl,
+  videoTitle: remoteSet1.videoTitle,
+  lineups: remoteSet1.lineups,
+  rotationPlans: remoteSet1.rotationPlans,
+  officialScores: remoteSet1.officialScores,
+})
+const disjointMerge = mergeTaggerCsv('2026-08-02.csv', remoteSet1Csv, continued)
+if (disjointMerge.conflictingSets.length || disjointMerge.remoteChangedSets.join(',') !== '1') {
+  throw new Error('a direct edit to set 1 should merge safely with browser changes to set 2')
+}
+const disjointDraft = importTaggerCsv('2026-08-02.csv', disjointMerge.csv).draft
+if (disjointDraft.rallies.find((rally) => rally.set === '1')?.notes !== 'edited directly in the repository') {
+  throw new Error('the merge did not preserve the direct repository edit')
+}
+if (disjointDraft.rallies.filter((rally) => rally.set === '2').length !== 1) {
+  throw new Error('the merge lost the browser set')
+}
+
+const localSet1 = importTaggerCsv('2026-08-02.csv', csv, 'saved-sha').draft
+localSet1.rallies[0].notes = 'edited in the browser'
+const sameSetConflict = mergeTaggerCsv('2026-08-02.csv', remoteSet1Csv, localSet1)
+if (sameSetConflict.conflictingSets.join(',') !== '1') {
+  throw new Error('simultaneous browser and repository edits to set 1 should conflict')
+}
+
+const remoteSet2 = importTaggerCsv('2026-08-02.csv', csv).draft
+remoteSet2.rallies.push({
+  ...rallies[0],
+  id: 'remote-set-2',
+  set: '2',
+})
+const remoteSet2Csv = exportTaggerCsv({
+  rallies: remoteSet2.rallies,
+  youtubeUrl: remoteSet2.youtubeUrl,
+  videoTitle: remoteSet2.videoTitle,
+  lineups: remoteSet2.lineups,
+  rotationPlans: remoteSet2.rotationPlans,
+  officialScores: remoteSet2.officialScores,
+})
+const newSetConflict = mergeTaggerCsv('2026-08-02.csv', remoteSet2Csv, continued)
+if (newSetConflict.conflictingSets.join(',') !== '2') {
+  throw new Error('independently added sets with the same label should conflict')
+}
+
+const remoteLineup = importTaggerCsv('2026-08-02.csv', csv).draft
+remoteLineup.rotationPlans[0].lineups[0] = {
+  ...remoteLineup.rotationPlans[0].lineups[0],
+  front: ['Amber', 'Avy', 'Alec'],
+}
+const remoteLineupCsv = exportTaggerCsv({
+  rallies: remoteLineup.rallies,
+  youtubeUrl: remoteLineup.youtubeUrl,
+  videoTitle: remoteLineup.videoTitle,
+  lineups: remoteLineup.lineups,
+  rotationPlans: remoteLineup.rotationPlans,
+  officialScores: remoteLineup.officialScores,
+})
+const disjointLineupMerge = mergeTaggerCsv('2026-08-02.csv', remoteLineupCsv, continued)
+if (disjointLineupMerge.conflictingSets.length || !disjointLineupMerge.remoteChangedSets.includes('1')) {
+  throw new Error('a direct set 1 lineup edit should merge with browser changes to set 2')
+}
+const disjointLineupDraft = importTaggerCsv('2026-08-02.csv', disjointLineupMerge.csv).draft
+if (disjointLineupDraft.rotationPlans[0]?.lineups[0]?.front.join(',') !== 'Amber,Avy,Alec') {
+  throw new Error('the merge did not preserve the direct repository lineup edit')
+}
+
+const localLineup = importTaggerCsv('2026-08-02.csv', csv, 'saved-sha').draft
+localLineup.rotationPlans[0].lineups[0] = {
+  ...localLineup.rotationPlans[0].lineups[0],
+  front: ['Alec', 'Amber', 'Avy'],
+}
+const lineupConflict = mergeTaggerCsv('2026-08-02.csv', remoteLineupCsv, localLineup)
+if (lineupConflict.conflictingSets.join(',') !== '1') {
+  throw new Error('simultaneous lineup edits to the same set should conflict')
+}
+
 const set2 = emptyDraft({
   date: '2026-08-02',
   set: '2',

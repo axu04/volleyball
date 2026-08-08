@@ -53,9 +53,12 @@ it from a separate draft. After a save or import, unchanged sets are recognized 
 rather than rewritten on the next per-set save.
 
 Before an overwrite, the panel shows the saved and draft rally counts for every affected set.
-Writes use the repo blob version that was just read and are rejected if the file changes before
-the commit completes. Imported drafts also remember the version they came from, so a stale edit
-cannot overwrite a newer repo copy. Every successful save remains recoverable in Git history.
+Imported drafts remember per-set rally, score, and lineup snapshots. If the CSV is edited directly
+after it was opened, repository changes to untouched sets are preserved automatically while browser
+changes are applied only to their changed sets. If both copies changed the same set, saving stops
+with a conflict instead of overwriting either version. Writes still use the latest repo blob version
+and are rejected if it changes again before the commit completes. Every successful save remains
+recoverable in Git history.
 
 Every save and delete is an ordinary **git commit**, so nothing is ever truly lost — a file
 deleted here still lives in history and can be restored with `git revert <commit>` or from the

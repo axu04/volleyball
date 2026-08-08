@@ -68,11 +68,14 @@ export interface TaggerDraft {
   /** @deprecated kept so old drafts still load; migrated into `lineups` on read. */
   lineupBlocks?: LineupBlock[]
   officialScores: OfficialScore[]
-  /** Repo blob loaded or last saved, used to reject stale overwrites. */
+  /** Repo snapshot loaded or last saved, used for per-set three-way merges. */
   repoSource?: {
     filename: string
     sha: string
     setFingerprints: Record<string, string>
+    /** Per-set lineup snapshots allow direct CSV edits in other sets to merge safely. */
+    lineupFingerprints?: Record<string, string>
+    /** @deprecated fallback for drafts opened before per-set lineup snapshots existed. */
     lineupsFingerprint: string
   }
   updatedAt: number
