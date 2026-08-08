@@ -33,6 +33,7 @@ export default function TaggerApp() {
   const [won, setWon] = useState<boolean | null>(null)
   const [cause, setCause] = useState('')
   const [players, setPlayers] = useState<string[]>([])
+  const [playersOverridden, setPlayersOverridden] = useState(false)
   const [notes, setNotes] = useState('')
   const [touches, setTouches] = useState<Touch[]>([])
   const [touchActive, setTouchActive] = useState(false)
@@ -90,14 +91,9 @@ export default function TaggerApp() {
 
   const inferredOutcome = inferTouchOutcome(draft.serving, won, touches)
   const lastTouchPlayer = inferLastTouchPlayer(touches)
-  const suggestedKill = inferredOutcome?.cause === 'our_point'
-  const effectiveCause = suggestedKill ? cause || inferredOutcome.cause : inferredOutcome?.cause ?? cause
-  const suggestedPlayers = players.length ? players : lastTouchPlayer ? [lastTouchPlayer] : []
-  const effectivePlayers = inferredOutcome
-    ? suggestedKill && players.length
-      ? players
-      : inferredOutcome.players
-    : suggestedPlayers
+  const effectiveCause = cause || inferredOutcome?.cause || ''
+  const suggestedPlayers = inferredOutcome?.players ?? (lastTouchPlayer ? [lastTouchPlayer] : [])
+  const effectivePlayers = playersOverridden ? players : suggestedPlayers
   const canCommit = won !== null && !!effectiveCause && !!draft.rotation && !!draft.set
 
   const trackedScore = useMemo(() => {
@@ -115,6 +111,7 @@ export default function TaggerApp() {
     setTouches([])
     setTouchActive(false)
     setPendingTouchPlayer(null)
+    setPlayersOverridden(false)
   }, [])
 
   const commit = useCallback(() => {
@@ -447,7 +444,10 @@ export default function TaggerApp() {
               if (p.serving !== undefined) patch({ serving: p.serving })
               if (p.won !== undefined) setWon(p.won)
               if (p.cause !== undefined) setCause(p.cause)
-              if (p.players !== undefined) setPlayers(p.players)
+              if (p.players !== undefined) {
+                setPlayers(p.players)
+                setPlayersOverridden(true)
+              }
               if (p.notes !== undefined) setNotes(p.notes)
             }}
             onCommit={commit}
