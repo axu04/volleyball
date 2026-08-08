@@ -95,7 +95,6 @@ Aim for ~400–500 words.`
       },
       body: JSON.stringify({
         model: MODEL,
-        temperature: 0.55,
         messages: [
           { role: 'system', content: system },
           {
