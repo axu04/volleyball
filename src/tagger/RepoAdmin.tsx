@@ -109,6 +109,21 @@ export function RepoAdmin({
           const remoteNote = merged.remoteChangedSets.length
             ? ` Repository changes in set(s) ${merged.remoteChangedSets.join(', ')} are already preserved.`
             : ''
+          // CSV unchanged — still push a generated match summary if we have one.
+          if (draft.gameSummary?.text) {
+            const summaryName = summaryFilenameForDate(draft.date)
+            await saveRepoCsv({
+              filename: summaryName,
+              csv: formatSummaryMarkdown(draft.gameSummary, draft.date),
+              secret,
+            })
+            setNote({
+              kind: 'ok',
+              text: `${filename} already matches this draft.${remoteNote} Saved ${summaryName}.`,
+            })
+            await refresh()
+            return
+          }
           setNote({ kind: 'ok', text: `${filename} already matches this draft.${remoteNote} Nothing to save.` })
           return
         }
