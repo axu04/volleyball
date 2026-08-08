@@ -21,7 +21,7 @@ export function RallyLog({
   selectedId: string | null
   onSelect: (id: string) => void
   onDelete: (id: string) => void
-  onSeek: (seconds: number) => void
+  onSeek: (rally: TaggedRally) => void
   onUpdate: (id: string, patch: Partial<TaggedRally>) => void
 }) {
   if (!rallies.length) {
@@ -104,7 +104,7 @@ export function RallyLog({
                       style={{ padding: '2px 6px' }}
                       onClick={(e) => {
                         e.stopPropagation()
-                        onSeek(r.videoSeconds)
+                        onSeek(r)
                       }}
                       title="Jump video here"
                     >

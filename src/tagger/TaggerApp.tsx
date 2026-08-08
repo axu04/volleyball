@@ -25,6 +25,7 @@ const seededRoster = () => {
 
 export default function TaggerApp() {
   const playerRef = useRef<YouTubePlayerHandle>(null)
+  const videoColumnRef = useRef<HTMLDivElement>(null)
   const [draft, setDraft] = useState<TaggerDraft>(() => {
     const loaded = loadDraft()
     if (!loaded.roster.length) return { ...loaded, roster: seededRoster() }
@@ -42,6 +43,7 @@ export default function TaggerApp() {
   const [rosterInput, setRosterInput] = useState('')
   const [copied, setCopied] = useState(false)
   const [panel, setPanel] = useState<'log' | 'lineups' | 'admin'>('log')
+  const [seekRequest, setSeekRequest] = useState<{ seconds: number; id: number; url: string } | null>(null)
 
   useEffect(() => {
     saveDraft(draft)
@@ -54,9 +56,11 @@ export default function TaggerApp() {
     setDraft((current) => {
       const rotationPlans = assignSetToPlan(current.rotationPlans, set)
       const plan = planForSet({ rotationPlans, set })
+      const setVideoUrl = current.rallies.find((rally) => rally.set === set && rally.youtubeUrl)?.youtubeUrl
       return {
         ...current,
         set,
+        youtubeUrl: setVideoUrl || current.youtubeUrl,
         rotationPlans,
         rotations: plan.rotations,
         lineups: plan.lineups,
@@ -391,8 +395,8 @@ export default function TaggerApp() {
       </section>
 
       <div className="tagger-main">
-        <div className="tagger-video-col">
-          <YouTubePlayer ref={playerRef} url={draft.youtubeUrl} />
+        <div ref={videoColumnRef} className="tagger-video-col">
+          <YouTubePlayer ref={playerRef} url={draft.youtubeUrl} seekRequest={seekRequest} />
           <div className="tagger-transport">
             <button type="button" className="chip" onClick={() => playerRef.current?.pause()}>
               Pause
@@ -505,9 +509,29 @@ export default function TaggerApp() {
               setDraft((d) => ({ ...d, rallies: d.rallies.filter((r) => r.id !== id) }))
               if (selectedId === id) setSelectedId(null)
             }}
-            onSeek={(seconds) => {
-              playerRef.current?.seekTo(seconds)
-              playerRef.current?.pause()
+            onSeek={(rally) => {
+              const targetUrl = rally.youtubeUrl || draft.youtubeUrl
+              setDraft((current) => {
+                const rotationPlans = assignSetToPlan(current.rotationPlans, rally.set)
+                const plan = planForSet({ rotationPlans, set: rally.set })
+                return {
+                  ...current,
+                  set: rally.set,
+                  youtubeUrl: targetUrl || current.youtubeUrl,
+                  rotationPlans,
+                  rotations: plan.rotations,
+                  lineups: plan.lineups,
+                  rotation: plan.rotations.includes(rally.rotation) ? rally.rotation : plan.rotations[0],
+                }
+              })
+              setSeekRequest((current) => ({
+                seconds: rally.videoSeconds,
+                id: (current?.id ?? 0) + 1,
+                url: targetUrl,
+              }))
+              requestAnimationFrame(() =>
+                videoColumnRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+              )
             }}
             onUpdate={(id, patch) => {
               setDraft((d) => ({

@@ -58,8 +58,10 @@ function loadYouTubeApi(): Promise<void> {
   return apiLoading
 }
 
-export const YouTubePlayer = forwardRef<YouTubePlayerHandle, { url: string; className?: string }>(
-  function YouTubePlayer({ url, className }, ref) {
+export const YouTubePlayer = forwardRef<
+  YouTubePlayerHandle,
+  { url: string; className?: string; seekRequest?: { seconds: number; id: number; url: string } | null }
+>(function YouTubePlayer({ url, className, seekRequest }, ref) {
     const hostRef = useRef<HTMLDivElement>(null)
     const playerRef = useRef<YTPlayer | null>(null)
     const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
@@ -150,6 +152,16 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, { url: string; clas
       }
     }, [videoId])
 
+    useEffect(() => {
+      if (!seekRequest || status !== 'ready' || extractVideoId(seekRequest.url) !== videoId) return
+      try {
+        playerRef.current?.seekTo(seekRequest.seconds, true)
+        playerRef.current?.pauseVideo()
+      } catch {
+        /* player was replaced between renders */
+      }
+    }, [seekRequest, status, videoId])
+
     return (
       <div className={className}>
         <div className="yt-frame">
@@ -164,5 +176,4 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, { url: string; clas
         </div>
       </div>
     )
-  },
-)
+  })
