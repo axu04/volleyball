@@ -198,6 +198,13 @@ const continuedMerge = mergeTaggerCsv('2026-08-02.csv', csv, continued)
 if (continuedMerge.changes.map((change) => change.set).join(',') !== '2') {
   throw new Error('continued tagging should only append the changed set')
 }
+const continuedSession = parseSession('2026-08-02.csv', continuedMerge.csv)
+if (continuedSession.sets.find((set) => set.set === '1')?.rallies.length !== rallies.length) {
+  throw new Error('continued tagging duplicated a preserved set')
+}
+if (continuedSession.sets.find((set) => set.set === '2')?.rallies.length !== 1) {
+  throw new Error('continued tagging did not append exactly one new-set rally')
+}
 
 const set2 = emptyDraft({
   date: '2026-08-02',

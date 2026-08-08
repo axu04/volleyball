@@ -252,9 +252,10 @@ export function mergeTaggerCsv(filename: string, existingCsv: string, current: T
     draftRallies: current.rallies.filter((rally) => rally.set === set).length,
   }))
 
-  const rallies = [...existing.rallies.filter((rally) => !replaced.has(rally.set)), ...current.rallies].sort(
-    (a, b) => compareLabels(a.set, b.set),
-  )
+  const rallies = [
+    ...existing.rallies.filter((rally) => !replaced.has(rally.set)),
+    ...current.rallies.filter((rally) => replaced.has(rally.set)),
+  ].sort((a, b) => compareLabels(a.set, b.set))
   const currentScores = new Map(current.officialScores.map((score) => [score.set, score]))
   const officialScores = [
     ...existing.officialScores.filter((score) => !replaced.has(score.set)),
