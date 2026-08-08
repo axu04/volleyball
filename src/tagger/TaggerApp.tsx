@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { loadBundledSessions } from '../lib/load'
 import type { Touch, TouchSkill } from '../lib/touches'
 import { downloadCsv, exportTaggerCsv } from './exportCsv'
+import { GameSummaryPanel } from './GameSummaryPanel'
 import { LineupEditor } from './LineupEditor'
 import { RallyForm } from './RallyForm'
 import { RallyLog } from './RallyLog'
@@ -10,7 +11,7 @@ import { importTaggerCsv } from './csvDraft'
 import { inferLastTouchPlayer, inferTouchOutcome } from './inference'
 import { assignSetToPlan, createPlanForSet, planForSet, updateRotationPlan } from './rotationPlans'
 import { advanceAfterRally, addRotation, clearDraft, loadDraft, nextRotation, removeRotation, saveDraft } from './state'
-import type { TaggedRally, TaggerDraft } from './types'
+import type { GameSummary, TaggedRally, TaggerDraft } from './types'
 import { YouTubePlayer, type YouTubePlayerHandle } from './YouTubePlayer'
 import { extractVideoId } from './youtube'
 
@@ -486,6 +487,11 @@ export default function TaggerApp() {
         </div>
       </div>
 
+      <GameSummaryPanel
+        draft={draft}
+        onSummary={(gameSummary: GameSummary | null) => patch({ gameSummary })}
+      />
+
       <section className="card" style={{ marginTop: 14 }}>
         <div className="tabs" style={{ marginBottom: 12 }}>
           <button type="button" className={`tab ${panel === 'log' ? 'on' : ''}`} onClick={() => setPanel('log')}>
@@ -588,6 +594,7 @@ export default function TaggerApp() {
             csv={csv}
             draft={draft}
             onImport={importCsv}
+            onSummaryLoaded={(gameSummary) => patch({ gameSummary })}
             onSaved={(savedFilename, sha, savedCsv) => {
               const saved = importTaggerCsv(savedFilename, savedCsv, sha).draft
               setDraft((current) => {
@@ -595,6 +602,7 @@ export default function TaggerApp() {
                 return {
                   ...saved,
                   videoTitle: current.videoTitle,
+                  gameSummary: current.gameSummary,
                   set: current.set,
                   youtubeUrl:
                     saved.rallies.find((rally) => rally.set === current.set)?.youtubeUrl ||

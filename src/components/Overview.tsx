@@ -449,7 +449,31 @@ export function Overview({
           <SimpleNet players={players} maxNet={maxNet} />
         </Card>
       </div>
+
+      <MatchSummaries sessions={sessions} />
     </>
+  )
+}
+
+function MatchSummaries({ sessions }: { sessions: Session[] }) {
+  const withSummary = sessions.filter((s) => s.summary?.text?.trim())
+  if (!withSummary.length) return null
+
+  return (
+    <div className="match-summaries" style={{ marginTop: 14 }}>
+      {withSummary.map((s) => {
+        const summary = s.summary!
+        return (
+          <Card
+            key={s.id}
+            title={withSummary.length > 1 ? `Match summary · ${s.label}` : 'Match summary'}
+            hint={`${new Date(summary.generatedAt).toLocaleString()} · ${summary.model}`}
+          >
+            <pre className="match-summary-text">{summary.text}</pre>
+          </Card>
+        )
+      })}
+    </div>
   )
 }
 

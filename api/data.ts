@@ -55,12 +55,13 @@ function ghHeaders(token: string): Record<string, string> {
   }
 }
 
-/** Only allow a plain CSV file name inside `data/` — no paths, no traversal. */
+/** Only allow a plain CSV or match-summary file name inside `data/` — no paths, no traversal. */
 function sanitizeFilename(name: string): string | null {
   const base = (name.split(/[\\/]/).pop() ?? '').trim()
-  if (!/^[A-Za-z0-9 ._-]+\.csv$/i.test(base)) return null
   if (base.includes('..')) return null
-  return base
+  if (/^[A-Za-z0-9 ._-]+\.csv$/i.test(base)) return base
+  if (/^[A-Za-z0-9 ._-]+\.summary\.md$/i.test(base)) return base
+  return null
 }
 
 interface RepoFile {
@@ -267,7 +268,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
       if (requested) {
         const filename = sanitizeFilename(requested)
         if (!filename) {
-          res.status(400).json({ error: 'Invalid filename. Use a plain name ending in .csv.' })
+          res.status(400).json({ error: 'Invalid filename. Use a plain .csv or .summary.md name.' })
           return
         }
         res.status(200).json(await readCsv(cfg, filename))
@@ -294,14 +295,19 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
       const rawName = (body.filename as string | undefined) ?? firstQuery(req.query.filename) ?? ''
       const filename = sanitizeFilename(String(rawName))
       if (!filename) {
-        res.status(400).json({ error: 'Invalid filename. Use a plain name ending in .csv.' })
+        res.status(400).json({ error: 'Invalid filename. Use a plain .csv or .summary.md name.' })
         return
       }
 
       if (req.method === 'POST') {
-        const csv = body.csv
-        if (typeof csv !== 'string' || !csv.trim()) {
-          res.status(400).json({ error: 'Missing CSV content.' })
+        const csv =
+          typeof body.content === 'string'
+            ? body.content
+            : typeof body.csv === 'string'
+              ? body.csv
+              : null
+        if (csv === null || !csv.trim()) {
+          res.status(400).json({ error: 'Missing file content.' })
           return
         }
         const expectedSha = typeof body.expectedSha === 'string' ? body.expectedSha : undefined

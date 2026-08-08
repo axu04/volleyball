@@ -662,3 +662,18 @@ code {
 .tip .t-row {
   color: var(--text-dim);
 }
+
+.match-summaries {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.match-summary-text {
+  margin: 0;
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text);
+}
