@@ -50,7 +50,11 @@ const rallies = [
     id: 'session:1:3',
     n: 3,
     serving: true,
-    touches: [{ player: 'Sofia', skill: 'v', quality: 3 }],
+    touches: [
+      { player: 'Sofia', skill: 'v', quality: 3 },
+      { opp: true },
+      { player: 'Amber', skill: 'b', quality: 3 },
+    ],
     videoTimestamp: '1:00',
     us: 2,
     them: 1,
@@ -84,8 +88,17 @@ if (jess.find((clip) => clip.kind === 'finish')?.touch.player !== 'Jess') {
 }
 
 const amber = highlightClipsForPlayer([session], 'Amber')
-if (amber.some((clip) => clip.kind === 'finish') || amber.filter((clip) => clip.kind === 'receive3').length !== 1) {
-  throw new Error('an earlier quality-3 receive should appear only in its skill section')
+if (
+  amber.filter((clip) => clip.kind === 'finish').length !== 1 ||
+  amber.filter((clip) => clip.kind === 'receive3').length !== 1 ||
+  amber.filter((clip) => clip.kind === 'block3').length !== 1
+) {
+  throw new Error('quality-3 receives and blocks should overlap with rally-ending clips when applicable')
+}
+
+const sofia = highlightClipsForPlayer([session], 'Sofia')
+if (sofia.filter((clip) => clip.kind === 'serve3').length !== 1) {
+  throw new Error('quality-3 serves should appear in the serve category')
 }
 
 const roster = highlightRoster([session])

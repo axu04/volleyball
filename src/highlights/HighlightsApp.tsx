@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { playerColor } from '../components/ui'
 import { SessionFilmPlayer } from '../film/clips'
 import { causeMeta } from '../lib/causes'
@@ -11,37 +11,17 @@ import '../film/film.css'
 import './highlights.css'
 
 const KEY = 'sdwfu-highlight-player'
-const PREVIEW_LIMIT = 6
 
-const SECTION_META: Record<
-  HighlightKind,
-  { title: string; short: string; description: string; color: string }
-> = {
-  finish: {
-    title: 'Rally-ending touches',
-    short: 'Finish',
-    description: 'The last SDWFU player touch before a won rally ended.',
-    color: 'var(--win)',
-  },
-  receive3: {
-    title: '3-rated receives & digs',
-    short: 'Receive 3',
-    description: 'Clean first contacts and defensive bumps rated 3.',
-    color: TOUCH_GRADE_COLORS[3],
-  },
-  set3: {
-    title: '3-rated sets',
-    short: 'Set 3',
-    description: 'Sets rated 3, with a longer clip window to show the full play.',
-    color: '#60a5fa',
-  },
-  attack3: {
-    title: '3-rated attacks',
-    short: 'Attack 3',
-    description: 'Attacks rated 3, whether or not the rally ended immediately.',
-    color: '#f472b6',
-  },
+const CATEGORY_META: Record<HighlightKind, { label: string; short: string; color: string }> = {
+  finish: { label: 'Rally ending', short: 'Finish', color: 'var(--win)' },
+  serve3: { label: 'Serves', short: 'Serve 3', color: '#c084fc' },
+  receive3: { label: 'Receives', short: 'Receive 3', color: TOUCH_GRADE_COLORS[3] },
+  set3: { label: 'Sets', short: 'Set 3', color: '#60a5fa' },
+  attack3: { label: 'Attacks', short: 'Attack 3', color: '#f472b6' },
+  block3: { label: 'Blocks', short: 'Block 3', color: '#fb923c' },
 }
+
+const CATEGORIES = Object.keys(CATEGORY_META) as HighlightKind[]
 
 function ClipButton({
   clip,
@@ -52,7 +32,7 @@ function ClipButton({
   active: boolean
   onClick: () => void
 }) {
-  const meta = SECTION_META[clip.kind]
+  const meta = CATEGORY_META[clip.kind]
   return (
     <button type="button" className={`highlight-clip ${active ? 'on' : ''}`} onClick={onClick}>
       <div className="highlight-clip-top">
@@ -66,7 +46,9 @@ function ClipButton({
         {clip.rally.sessionLabel} · Set {clip.rally.set} · #{clip.rally.n} · {clip.rally.us}–
         {clip.rally.them}
       </div>
-      {clip.rally.notes && <div className="faint highlight-clip-note">{clip.rally.notes}</div>}
+      <div className="faint highlight-clip-note">
+        {clip.rally.notes || causeMeta(clip.rally.cause, clip.rally.won).label}
+      </div>
     </button>
   )
 }
@@ -82,22 +64,75 @@ export default function HighlightsApp() {
       return null
     }
   })
+  const [category, setCategory] = useState<HighlightKind>('finish')
+  const [sessionFilter, setSessionFilter] = useState<string | 'all'>('all')
+  const [setFilter, setSetFilter] = useState<string | 'all'>('all')
+  const [causeFilter, setCauseFilter] = useState<string | 'all'>('all')
   const [activeId, setActiveId] = useState<string | null>(null)
   const [autoplay, setAutoplay] = useState(false)
-  const [expanded, setExpanded] = useState<Partial<Record<HighlightKind, boolean>>>({})
-  const stageRef = useRef<HTMLElement>(null)
 
   const clips = useMemo(() => (player ? highlightClipsForPlayer(sessions, player) : []), [sessions, player])
-  const grouped = useMemo(
-    () => ({
-      finish: clips.filter((clip) => clip.kind === 'finish'),
-      receive3: clips.filter((clip) => clip.kind === 'receive3'),
-      set3: clips.filter((clip) => clip.kind === 'set3'),
-      attack3: clips.filter((clip) => clip.kind === 'attack3'),
-    }),
-    [clips],
+  const categoryClips = useMemo(() => clips.filter((clip) => clip.kind === category), [clips, category])
+
+  const sessionOptions = useMemo(() => {
+    const map = new Map<string, { label: string; count: number; date: string }>()
+    for (const clip of categoryClips) {
+      const current = map.get(clip.rally.sessionId) ?? {
+        label: clip.rally.sessionLabel,
+        count: 0,
+        date: clip.rally.date,
+      }
+      current.count += 1
+      map.set(clip.rally.sessionId, current)
+    }
+    return [...map.entries()].sort((a, b) => a[1].date.localeCompare(b[1].date))
+  }, [categoryClips])
+
+  const bySession = useMemo(
+    () =>
+      sessionFilter === 'all'
+        ? categoryClips
+        : categoryClips.filter((clip) => clip.rally.sessionId === sessionFilter),
+    [categoryClips, sessionFilter],
   )
-  const active = clips.find((clip) => clip.id === activeId) ?? grouped.finish[0] ?? clips[0] ?? null
+
+  const setOptions = useMemo(() => {
+    const map = new Map<string, { label: string; count: number; sort: string }>()
+    for (const clip of bySession) {
+      const key = `${clip.rally.sessionId}::${clip.rally.set}`
+      const current = map.get(key) ?? {
+        label: `${clip.rally.sessionLabel} · Set ${clip.rally.set}`,
+        count: 0,
+        sort: `${clip.rally.date}-${clip.rally.set}`,
+      }
+      current.count += 1
+      map.set(key, current)
+    }
+    return [...map.entries()].sort((a, b) =>
+      a[1].sort.localeCompare(b[1].sort, undefined, { numeric: true }),
+    )
+  }, [bySession])
+
+  const bySet = useMemo(
+    () =>
+      setFilter === 'all'
+        ? bySession
+        : bySession.filter((clip) => `${clip.rally.sessionId}::${clip.rally.set}` === setFilter),
+    [bySession, setFilter],
+  )
+
+  const causes = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const clip of bySet) map.set(clip.rally.cause, (map.get(clip.rally.cause) ?? 0) + 1)
+    return [...map.entries()].sort((a, b) => b[1] - a[1])
+  }, [bySet])
+
+  const filtered = useMemo(
+    () => (causeFilter === 'all' ? bySet : bySet.filter((clip) => clip.rally.cause === causeFilter)),
+    [bySet, causeFilter],
+  )
+  const active = filtered.find((clip) => clip.id === activeId) ?? filtered[0] ?? null
+  const activeIndex = active ? filtered.findIndex((clip) => clip.id === active.id) : -1
 
   useEffect(() => {
     if (!player) return
@@ -109,19 +144,39 @@ export default function HighlightsApp() {
   }, [player])
 
   useEffect(() => {
+    setCategory('finish')
+    setSessionFilter('all')
+    setSetFilter('all')
+    setCauseFilter('all')
     setActiveId(null)
     setAutoplay(false)
-    setExpanded({})
   }, [player])
 
-  const selectClip = (clip: HighlightClip, scroll = false) => {
+  useEffect(() => {
+    setSessionFilter('all')
+    setSetFilter('all')
+    setCauseFilter('all')
+    setActiveId(null)
+    setAutoplay(false)
+  }, [category])
+
+  useEffect(() => {
+    setSetFilter('all')
+    setCauseFilter('all')
+    setActiveId(null)
+  }, [sessionFilter])
+
+  useEffect(() => {
+    setCauseFilter('all')
+    setActiveId(null)
+  }, [setFilter])
+
+  const selectClip = (clip: HighlightClip) => {
     setActiveId(clip.id)
     setAutoplay(true)
-    if (scroll) requestAnimationFrame(() => stageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
 
-  const activeGroup = active ? grouped[active.kind] : []
-  const activeIndex = active ? activeGroup.findIndex((clip) => clip.id === active.id) : -1
+  const filtersActive = sessionFilter !== 'all' || setFilter !== 'all' || causeFilter !== 'all'
 
   return (
     <div className="app highlights-app">
@@ -129,7 +184,7 @@ export default function HighlightsApp() {
         <div>
           <h1>Highlight reel</h1>
           <div className="sub">
-            Rally-ending touches first · quality-3 receives, sets, and attacks underneath
+            Rally-ending touches and quality-3 serves, receives, sets, attacks, and blocks · clips may overlap
           </div>
         </div>
         <div className="badge-row">
@@ -148,9 +203,9 @@ export default function HighlightsApp() {
           {player && (
             <div className="record-chip">
               <span className="big" style={{ color: playerColor(player) }}>
-                {clips.length}
+                {filtered.length}
               </span>
-              <span className="lbl">clips</span>
+              <span className="lbl">{filtersActive ? 'matching' : CATEGORY_META[category].label}</span>
             </div>
           )}
         </div>
@@ -171,149 +226,175 @@ export default function HighlightsApp() {
             </button>
           ))}
         </div>
+
+        {player && (
+          <div className="filter-group">
+            <span className="filter-label">Category</span>
+            {CATEGORIES.map((kind) => (
+              <button
+                key={kind}
+                type="button"
+                className={`chip ${category === kind ? 'on' : ''}`}
+                onClick={() => setCategory(kind)}
+              >
+                {CATEGORY_META[kind].label} · {clips.filter((clip) => clip.kind === kind).length}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {player && sessionOptions.length > 1 && (
+          <div className="filter-group">
+            <span className="filter-label">Day</span>
+            <button
+              type="button"
+              className={`chip ${sessionFilter === 'all' ? 'on' : 'ghost'}`}
+              onClick={() => setSessionFilter('all')}
+            >
+              All
+            </button>
+            {sessionOptions.map(([id, option]) => (
+              <button
+                key={id}
+                type="button"
+                className={`chip ${sessionFilter === id ? 'on' : ''}`}
+                onClick={() => setSessionFilter(id)}
+              >
+                {option.label} · {option.count}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {player && setOptions.length > 1 && (
+          <div className="filter-group">
+            <span className="filter-label">Set</span>
+            <button
+              type="button"
+              className={`chip ${setFilter === 'all' ? 'on' : 'ghost'}`}
+              onClick={() => setSetFilter('all')}
+            >
+              All
+            </button>
+            {setOptions.map(([key, option]) => (
+              <button
+                key={key}
+                type="button"
+                className={`chip ${setFilter === key ? 'on' : ''}`}
+                onClick={() => setSetFilter(key)}
+              >
+                {sessionOptions.length > 1 ? option.label : `Set ${key.split('::')[1]}`} · {option.count}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {player && causes.length > 1 && (
+          <div className="filter-group">
+            <span className="filter-label">Cause</span>
+            <button
+              type="button"
+              className={`chip ${causeFilter === 'all' ? 'on' : 'ghost'}`}
+              onClick={() => setCauseFilter('all')}
+            >
+              All
+            </button>
+            {causes.map(([key, count]) => (
+              <button
+                key={key}
+                type="button"
+                className={`chip ${causeFilter === key ? 'on' : ''}`}
+                onClick={() => setCauseFilter(key)}
+              >
+                {causeMeta(key, false).short} · {count}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {!player ? (
         <div className="empty">Choose a player to build their highlight reel.</div>
-      ) : clips.length === 0 ? (
-        <div className="empty">{player} has no playable highlights in the tagged film yet.</div>
+      ) : filtered.length === 0 ? (
+        <div className="empty">
+          {categoryClips.length === 0
+            ? `${player} has no ${CATEGORY_META[category].label.toLowerCase()} clips yet.`
+            : 'No highlight clips match these filters.'}
+        </div>
       ) : (
-        <>
-          <section className="highlight-feature">
-            <div className="highlight-section-head">
-              <div>
-                <div className="highlight-kicker">Main reel</div>
-                <h2>{SECTION_META.finish.title}</h2>
-                <p>{SECTION_META.finish.description}</p>
-              </div>
-              <span className="highlight-count">{grouped.finish.length}</span>
-            </div>
+        <div className="film-layout highlight-layout">
+          <aside className="film-list">
+            {filtered.map((clip) => (
+              <ClipButton
+                key={clip.id}
+                clip={clip}
+                active={active?.id === clip.id}
+                onClick={() => selectClip(clip)}
+              />
+            ))}
+          </aside>
 
-            <div className="highlight-feature-layout">
-              <div className="highlight-finish-list">
-                {grouped.finish.length ? (
-                  grouped.finish.map((clip) => (
-                    <ClipButton
-                      key={clip.id}
-                      clip={clip}
-                      active={active?.id === clip.id}
-                      onClick={() => selectClip(clip)}
-                    />
-                  ))
-                ) : (
-                  <div className="empty">No won rallies where {player} recorded the final touch.</div>
-                )}
-              </div>
-
-              <section ref={stageRef} className="film-stage highlight-stage">
-                {active && extractVideoId(active.youtubeUrl) ? (
-                  <>
-                    <SessionFilmPlayer
-                      url={active.youtubeUrl}
-                      start={active.start}
-                      end={active.end}
-                      autoplay={autoplay}
-                    />
-                    <div className="film-caption">
-                      <div className="highlight-now">
-                        <span style={{ color: SECTION_META[active.kind].color }}>
-                          {SECTION_META[active.kind].short}
-                        </span>
-                        <strong>{formatTouchLabel(active.touch)}</strong>
-                      </div>
-                      <div className="muted">
-                        {active.rally.sessionLabel} · Set {active.rally.set} rally {active.rally.n} · score{' '}
-                        {active.rally.us}–{active.rally.them} · {causeMeta(active.rally.cause, active.rally.won).label}
-                      </div>
-                      <div className="faint">
-                        Clip {formatVideoTimestamp(active.start)}→{formatVideoTimestamp(active.end)} · rally ends{' '}
-                        {active.rally.videoTimestamp}
-                      </div>
-                      {active.rally.notes && <div className="film-notes">{active.rally.notes}</div>}
-                      <div className="faint mono">{active.rally.touches.map(formatTouchLabel).join(' · ')}</div>
-                      <div className="film-nav">
-                        <button
-                          type="button"
-                          className="chip"
-                          disabled={activeIndex <= 0}
-                          onClick={() => activeIndex > 0 && selectClip(activeGroup[activeIndex - 1]!, false)}
-                        >
-                          ← Prev
-                        </button>
-                        <button
-                          type="button"
-                          className="chip"
-                          disabled={activeIndex < 0 || activeIndex >= activeGroup.length - 1}
-                          onClick={() =>
-                            activeIndex >= 0 &&
-                            activeIndex < activeGroup.length - 1 &&
-                            selectClip(activeGroup[activeIndex + 1]!, false)
-                          }
-                        >
-                          Next →
-                        </button>
-                        <a
-                          className="chip"
-                          href={`${active.youtubeUrl}${active.youtubeUrl.includes('?') ? '&' : '?'}t=${Math.floor(active.start)}s`}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Open on YouTube
-                        </a>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="empty">Choose a clip to play it here.</div>
-                )}
-              </section>
-            </div>
-          </section>
-
-          <div className="highlight-skill-sections">
-            {(['receive3', 'set3', 'attack3'] as const).map((kind) => {
-              const section = grouped[kind]
-              const visible = expanded[kind] ? section : section.slice(0, PREVIEW_LIMIT)
-              const meta = SECTION_META[kind]
-              return (
-                <section key={kind} className="highlight-skill-section">
-                  <div className="highlight-section-head">
-                    <div>
-                      <h2>{meta.title}</h2>
-                      <p>{meta.description}</p>
-                    </div>
-                    <span className="highlight-count">{section.length}</span>
+          <section className="film-stage highlight-stage">
+            {active && extractVideoId(active.youtubeUrl) ? (
+              <>
+                <SessionFilmPlayer
+                  url={active.youtubeUrl}
+                  start={active.start}
+                  end={active.end}
+                  autoplay={autoplay}
+                />
+                <div className="film-caption">
+                  <div className="highlight-now">
+                    <span style={{ color: CATEGORY_META[active.kind].color }}>
+                      {CATEGORY_META[active.kind].short}
+                    </span>
+                    <strong>{formatTouchLabel(active.touch)}</strong>
                   </div>
-                  {section.length ? (
-                    <>
-                      <div className="highlight-card-grid">
-                        {visible.map((clip) => (
-                          <ClipButton
-                            key={clip.id}
-                            clip={clip}
-                            active={active?.id === clip.id}
-                            onClick={() => selectClip(clip, true)}
-                          />
-                        ))}
-                      </div>
-                      {section.length > PREVIEW_LIMIT && (
-                        <button
-                          type="button"
-                          className="chip highlight-show-all"
-                          onClick={() => setExpanded((current) => ({ ...current, [kind]: !current[kind] }))}
-                        >
-                          {expanded[kind] ? 'Show fewer' : `Show all ${section.length}`}
-                        </button>
-                      )}
-                    </>
-                  ) : (
-                    <div className="empty">No {meta.short.toLowerCase()} clips yet.</div>
-                  )}
-                </section>
-              )
-            })}
-          </div>
-        </>
+                  <div className="muted">
+                    {active.rally.sessionLabel} · Set {active.rally.set} rally {active.rally.n} · score{' '}
+                    {active.rally.us}–{active.rally.them} · {causeMeta(active.rally.cause, active.rally.won).label}
+                  </div>
+                  <div className="faint">
+                    Clip {formatVideoTimestamp(active.start)}→{formatVideoTimestamp(active.end)} · rally ends{' '}
+                    {active.rally.videoTimestamp}
+                  </div>
+                  {active.rally.notes && <div className="film-notes">{active.rally.notes}</div>}
+                  <div className="faint mono">{active.rally.touches.map(formatTouchLabel).join(' · ')}</div>
+                  <div className="film-nav">
+                    <button
+                      type="button"
+                      className="chip"
+                      disabled={activeIndex <= 0}
+                      onClick={() => activeIndex > 0 && selectClip(filtered[activeIndex - 1]!)}
+                    >
+                      ← Prev
+                    </button>
+                    <button
+                      type="button"
+                      className="chip"
+                      disabled={activeIndex < 0 || activeIndex >= filtered.length - 1}
+                      onClick={() =>
+                        activeIndex >= 0 && activeIndex < filtered.length - 1 && selectClip(filtered[activeIndex + 1]!)
+                      }
+                    >
+                      Next →
+                    </button>
+                    <a
+                      className="chip"
+                      href={`${active.youtubeUrl}${active.youtubeUrl.includes('?') ? '&' : '?'}t=${Math.floor(active.start)}s`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Open on YouTube
+                    </a>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="empty">Could not load this clip — check the session YouTube URL.</div>
+            )}
+          </section>
+        </div>
       )}
     </div>
   )

@@ -3,7 +3,7 @@ import { isOppTouch, type PlayerTouch, type TouchSkill } from '../lib/touches'
 import type { Rally, Session } from '../lib/types'
 import { extractVideoId } from '../tagger/youtube'
 
-export type HighlightKind = 'finish' | 'receive3' | 'set3' | 'attack3'
+export type HighlightKind = 'finish' | 'serve3' | 'receive3' | 'set3' | 'attack3' | 'block3'
 
 export interface HighlightClip {
   id: string
@@ -16,9 +16,11 @@ export interface HighlightClip {
 }
 
 const PERFECT_KINDS: Array<{ skill: TouchSkill; kind: Exclude<HighlightKind, 'finish'> }> = [
+  { skill: 'v', kind: 'serve3' },
   { skill: 'r', kind: 'receive3' },
   { skill: 's', kind: 'set3' },
   { skill: 'a', kind: 'attack3' },
+  { skill: 'b', kind: 'block3' },
 ]
 
 function lastPlayerTouch(rally: Rally): PlayerTouch | null {
@@ -101,7 +103,7 @@ export function highlightRoster(sessions: Session[]): string[] {
       const last = lastPlayerTouch(rally)
       if (rally.won && last) names.add(last.player)
       for (const touch of rally.touches) {
-        if (!isOppTouch(touch) && touch.quality === 3 && ['r', 's', 'a'].includes(touch.skill)) {
+        if (!isOppTouch(touch) && touch.quality === 3) {
           names.add(touch.player)
         }
       }
